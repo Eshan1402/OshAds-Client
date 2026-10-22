@@ -18,7 +18,7 @@
     "sitemap": "tsx --tsconfig growth/tsconfig.json scripts/sitemap.ts",
     "test": "tsx --tsconfig server/tsconfig.json --test src/lib/*.test.ts server/*.test.ts",
     "server": "tsx --env-file-if-exists=.env.local --tsconfig server/tsconfig.json server/index.ts",
-    "start": "NODE_ENV=production tsx --tsconfig server/tsconfig.json server/index.ts",
+    "start": "NODE_ENV=production tsx --env-file-if-exists=.env.local --env-file-if-exists=.env --tsconfig server/tsconfig.json server/index.ts",
     "typecheck:server": "tsc -p server/tsconfig.json --noEmit"
   },
   "dependencies": {
