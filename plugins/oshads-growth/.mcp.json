@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "oshads-growth": {
+      "type": "http",
+      "url": "${OSHADS_CONNECTOR_URL:-http://localhost:8787/mcp}",
+      "headers": { "Authorization": "Bearer ${OSHADS_CONNECTOR_TOKEN:-}" }
+    }
+  }
+}

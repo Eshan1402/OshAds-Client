@@ -1,0 +1,397 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────────────────── Primitive tokens ───────────────────────── */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* OshAds royal blue, sampled from the logo (600 = primary). */
+  --color-brand-50: #eef3ff;
+  --color-brand-100: #dce6ff;
+  --color-brand-200: #bacdff;
+  --color-brand-300: #8fb0ff;
+  --color-brand-400: #4c7dff;
+  --color-brand-500: #2b57e8;
+  --color-brand-600: #1b3fd0;
+  --color-brand-700: #1633ae;
+  --color-brand-800: #142b8a;
+  --color-brand-900: #13286e;
+
+  --color-ink-25: #fcfcfd;
+  --color-ink-50: #f7f8fa;
+  --color-ink-100: #f0f2f5;
+  --color-ink-200: #e4e7ec;
+  --color-ink-300: #d0d5dd;
+  --color-ink-400: #98a2b3;
+  --color-ink-500: #667085;
+  --color-ink-600: #475467;
+  --color-ink-700: #344054;
+  --color-ink-800: #1d2433;
+  --color-ink-850: #151b27;
+  --color-ink-900: #101520;
+  --color-ink-950: #0a0d14;
+
+  --color-iris-400: #8f8af8;
+  --color-iris-500: #6c63f0;
+  --color-iris-600: #5548d9;
+  --color-mint-400: #2dd4bf;
+  --color-mint-500: #14b8a6;
+  --color-gold-500: #f5a524;
+
+  --color-success-500: #12b76a;
+  --color-warning-500: #f79009;
+  --color-danger-500: #f04438;
+  --color-info-500: #2e90fa;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-pulse-dot: pulse-dot 2s ease-out infinite;
+
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes pulse-dot {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+    70% { box-shadow: 0 0 0 8px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+}
+
+/* Animatable custom property for gradient text flow (see RotatingWord). */
+@property --flow {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@keyframes text-flow {
+  to { --flow: 640px; }
+}
+@utility animate-text-flow {
+  animation: text-flow 6s linear infinite;
+}
+
+/* ───────────────────────── Semantic tokens ───────────────────────── */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f2f4f7;
+  --surface-3: #e9ecf1;
+  --line: #e6e8ee;
+  --line-strong: #d0d5dd;
+  --fg: #0f1420;
+  --muted: #475467;
+  --subtle: #5d6779; /* 5.2:1+ on every light surface */
+  --accent: #1b3fd0;
+  --logo: #1b3fd0;
+  /* Glass — translucent tint, hairline edge, inner gloss highlight, soft lift */
+  --glass-bg: rgb(255 255 255 / 0.58);
+  --glass-bg-strong: rgb(255 255 255 / 0.72);
+  --glass-edge: rgb(255 255 255 / 0.75);
+  --glass-line: rgb(16 24 40 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.95);
+  --glass-sheen: rgb(255 255 255 / 0.55);
+  --glass-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 12px 32px -12px rgb(27 63 208 / 0.18);
+  --accent-hover: #1633ae;
+  --accent-soft: #eef2ff;
+  --accent-text: #1b3fd0;
+  /* Brand gradient stops — darker on light surfaces, brighter on dark, so gradient text keeps its contrast. */
+  --grad-1: #1433b0;
+  --grad-2: #1b3fd0;
+  --grad-3: #2f6bff;
+  --grad-4: #4c8dff;
+  --success: #067647;
+  --success-soft: #ecfdf3;
+  --warning: #b54708;
+  --warning-soft: #fffaeb;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --info: #175cd3;
+  --info-soft: #eff8ff;
+
+  /* Categorical order (OshAds blue first) validated for CVD separation + 3:1 contrast in both themes. */
+  --chart-1: #1d47d6;
+  --chart-2: #0d9488;
+  --chart-3: #c98400;
+  --chart-4: #7c3aed;
+  --chart-5: #e5484d;
+  --chart-6: #0284c7;
+  --chart-other: #98a2b3;
+  --chart-grid: #eef0f4;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 4px 8px -2px rgb(16 24 40 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  --shadow-lg: 0 16px 32px -8px rgb(16 24 40 / 0.12), 0 4px 8px -4px rgb(16 24 40 / 0.04);
+  --shadow-xl: 0 32px 64px -16px rgb(16 24 40 / 0.2);
+  --ring: 0 0 0 3px rgb(27 63 208 / 0.28);
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0a0d14;
+  --surface: #10141d;
+  --surface-2: #161b26;
+  --surface-3: #1d2331;
+  --line: #222836;
+  --line-strong: #30384a;
+  --fg: #eef1f6;
+  --muted: #a3acbd;
+  --subtle: #8f98ab; /* 5.4:1+ on every dark surface */
+  --accent: #2f5bff;
+  --logo: #3463ff;
+  --glass-bg: rgb(20 26 40 / 0.46);
+  --glass-bg-strong: rgb(16 21 33 / 0.66);
+  --glass-edge: rgb(255 255 255 / 0.09);
+  --glass-line: rgb(255 255 255 / 0.06);
+  --glass-highlight: rgb(255 255 255 / 0.12);
+  --glass-sheen: rgb(255 255 255 / 0.06);
+  --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -14px rgb(0 0 0 / 0.6);
+  --accent-hover: #4c7dff;
+  --accent-soft: rgb(61 107 255 / 0.14);
+  --accent-text: #8fb0ff;
+  --grad-1: #6d96ff;
+  --grad-2: #4c7dff;
+  --grad-3: #7fb0ff;
+  --grad-4: #a9d4ff;
+  --success: #3ccb7f;
+  --success-soft: rgb(18 183 106 / 0.14);
+  --warning: #fdb022;
+  --warning-soft: rgb(247 144 9 / 0.14);
+  --danger: #f97066;
+  --danger-soft: rgb(240 68 56 / 0.14);
+  --info: #53b1fd;
+  --info-soft: rgb(46 144 250 / 0.14);
+
+  --chart-1: #4f7bff;
+  --chart-2: #14a594;
+  --chart-3: #b07c0a;
+  --chart-4: #8b6cf0;
+  --chart-5: #e5574d;
+  --chart-6: #2a9fd0;
+  --chart-other: #5d6678;
+  --chart-grid: #1a2030;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.55);
+  --shadow-xl: 0 32px 72px -16px rgb(0 0 0 / 0.7);
+  --ring: 0 0 0 3px rgb(77 123 255 / 0.35);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
+/* ───────────────────────── Base ───────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  ::selection { background: rgb(27 63 208 / 0.2); }
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+    border-radius: 8px;
+  }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  input[type='search']::-webkit-search-cancel-button { display: none; }
+}
+
+/* ───────────────────────── Utilities ───────────────────────── */
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'cv11';
+}
+@utility container-page {
+  width: 100%;
+  padding-inline: 16px;
+  @media (width >= 640px) { padding-inline: 24px; }
+  @media (width >= 1024px) { padding-inline: 32px; }
+}
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+@utility skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 0px, var(--surface-3) 120px, var(--surface-2) 240px);
+  background-size: 800px 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 8px;
+}
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--fg) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--fg) 5%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+/* OshAds blue spectrum (deep royal → sky). Theme-aware via --grad-*; used for editorial accents. */
+@utility text-gradient-brand {
+  background: linear-gradient(95deg, var(--grad-1) 0%, var(--grad-2) 35%, var(--grad-3) 68%, var(--grad-4) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/*
+ * Glassmorphism. A diagonal sheen sits over the translucent tint; the inset top
+ * highlight is the "gloss" edge. `glass` has no backdrop blur on purpose: it is used on
+ * long grids of cards, and live blur under dozens of cards made scrolling lag.
+ * `glass-strong` (nav, menus, modals — a few at a time) keeps the blur.
+ */
+@utility glass {
+  background:
+    linear-gradient(140deg, var(--glass-sheen) 0%, transparent 38%),
+    var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--glass-line),
+    var(--glass-shadow);
+}
+@utility glass-strong {
+  background:
+    linear-gradient(160deg, var(--glass-sheen) 0%, transparent 45%),
+    var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--glass-line),
+    var(--glass-shadow);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background: var(--surface);
+  }
+}
+@utility card {
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(140deg, var(--glass-sheen) 0%, transparent 38%),
+    var(--glass-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(165%);
+  backdrop-filter: blur(16px) saturate(165%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--glass-line),
+    var(--glass-shadow);
+}
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+
+/* Interactive hero headline — driven by --p (0..1 proximity) and --rx/--ry (tilt), set from JS. */
+.hero-letter {
+  --p: 0;
+  transform: translateY(calc(var(--p) * -0.14em)) scale(calc(1 + var(--p) * 0.06));
+  font-weight: calc(600 + var(--p) * 200);
+  color: color-mix(in oklab, var(--fg), var(--accent-text) calc(var(--p) * 80%));
+  transition:
+    transform 0.5s var(--ease-out-expo),
+    font-weight 0.5s var(--ease-out-expo),
+    color 0.5s ease;
+  will-change: transform;
+}
+.hero-tilt {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition:
+    transform 0.7s var(--ease-out-expo),
+    filter 0.5s ease;
+}
+.hero-tilt[data-hot='true'] {
+  filter: drop-shadow(0 10px 24px rgb(61 123 255 / 0.35)) drop-shadow(0 0 12px rgb(27 63 208 / 0.3));
+}
+
+/* Custom cursor active (fine pointers only): hide the system cursor, keep the I-beam for text entry. */
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none !important;
+}
+html.has-custom-cursor :is(input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, [contenteditable=true]) {
+  cursor: text !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+  .print-area { box-shadow: none !important; border: none !important; }
+}

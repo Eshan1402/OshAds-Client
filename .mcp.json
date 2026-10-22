@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "oshads-growth": {
+      "command": "npx",
+      "args": ["tsx", "--tsconfig", "growth/tsconfig.json", "growth/mcp/server.ts"]
+    }
+  }
+}

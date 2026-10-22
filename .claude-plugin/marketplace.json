@@ -1,0 +1,11 @@
+{
+  "name": "oshads",
+  "owner": { "name": "OshAds" },
+  "plugins": [
+    {
+      "name": "oshads-growth",
+      "source": "./plugins/oshads-growth",
+      "description": "Traffic insights, campaign diagnosis, app recommendations and approval-gated social media tools for OshAds."
+    }
+  ]
+}

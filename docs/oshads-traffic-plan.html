@@ -1,0 +1,459 @@
+<title>OshAds Traffic &amp; Revenue Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column (~880px) with full-width tables in scroll boxes; phases read as a timeline. */
+:root {
+  --bg: #f7f8fc;
+  --paper: #ffffff;
+  --ink: #111827;
+  --muted: #4a5468;
+  --line: #dde3f0;
+  --brand: #1b3fd0;
+  --brand-ink: #1433b0;
+  --brand-soft: #e9efff;
+  --ok: #067647;
+  --ok-soft: #e3f6ec;
+  --warn: #9a4a06;
+  --warn-soft: #fdf0e1;
+  --display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f1a; --paper: #121828; --ink: #e8ecf6; --muted: #a3adc4; --line: #263049;
+    --brand: #6f8cff; --brand-ink: #a9bbff; --brand-soft: #1b2550;
+    --ok: #5fd39a; --ok-soft: #12301f; --warn: #f2b06b; --warn-soft: #3a2611; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f1a; --paper: #121828; --ink: #e8ecf6; --muted: #a3adc4; --line: #263049;
+  --brand: #6f8cff; --brand-ink: #a9bbff; --brand-soft: #1b2550;
+  --ok: #5fd39a; --ok-soft: #12301f; --warn: #f2b06b; --warn-soft: #3a2611; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+.doc { max-width: 880px; margin: 0 auto; display: grid; gap: 48px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 42px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+h3 { font-size: 16px; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+ul, ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+section { display: grid; gap: 16px; min-width: 0; }
+code { font: 500 12.5px var(--mono); background: var(--brand-soft); color: var(--brand-ink); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand-ink); }
+a { color: var(--brand-ink); }
+a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+header.top { display: grid; gap: 18px; border-bottom: 2px solid var(--brand); padding-bottom: 28px; }
+.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px 24px; font-size: 13px; margin: 0; }
+.meta dt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+.meta dd { margin: 2px 0 0; font-weight: 600; }
+.lede { font-size: 17px; }
+
+.callout { border: 1px solid var(--line); background: var(--paper); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; }
+.callout.warn { background: var(--warn-soft); border-color: transparent; }
+.callout.warn h3 { color: var(--warn); }
+
+.loop { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13.5px; }
+.loop span.step { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-weight: 600; }
+.loop span.arrow { color: var(--muted); }
+.loop span.step.hot { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.panel ul { font-size: 14px; color: var(--muted); }
+
+.tablewrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+th { font: 600 11px var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+td:first-child { font-weight: 600; }
+
+.pill { display: inline-block; font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 7px; border-radius: 5px; white-space: nowrap; }
+.p0 { background: var(--brand); color: #fff; }
+.p1 { background: var(--brand-soft); color: var(--brand-ink); }
+.p2 { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.have { background: var(--ok-soft); color: var(--ok); }
+
+.phases { display: grid; gap: 14px; }
+.phase { display: grid; grid-template-columns: 120px 1fr; gap: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.phase .when { font: 500 12px var(--mono); color: var(--brand-ink); letter-spacing: 0.04em; }
+.phase .when b { display: block; font: 800 20px var(--display); color: var(--ink); letter-spacing: -0.01em; margin-top: 4px; }
+.phase .body { display: grid; gap: 10px; min-width: 0; }
+.phase ul { font-size: 14px; }
+.phase .exit { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+@media (max-width: 560px) { .phase { grid-template-columns: 1fr; gap: 8px; } }
+
+pre { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; font: 500 12.5px/1.6 var(--mono); color: var(--ink); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 6px; }
+</style>
+
+<main class="doc">
+  <header class="top">
+    <span class="eyebrow">OshAds Media · Engineering plan</span>
+    <h1>OshAds Traffic &amp; Revenue Plan</h1>
+    <p class="lede">How we turn the app-discovery site into a real traffic engine for our clients, using what is already built (the recommender, the dashboard, the Claude connector and the social agent) plus the AI connectors we can plug in. The plan ends with the revenue streams the platform can grow into.</p>
+    <dl class="meta">
+      <div><dt>Prepared</dt><dd>21 Oct 2026</dd></div>
+      <div><dt>Codebase</dt><dd>Prototype2 (React 19 · Vite · MCP)</dd></div>
+      <div><dt>Horizon</dt><dd>90-day plan + 12-month scope</dd></div>
+      <div><dt>Status</dt><dd>Draft for team review</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <span class="eyebrow">Where we stand</span>
+    <h2>The foundation is good. Three gaps block traffic.</h2>
+    <div class="grid3">
+      <div class="panel">
+        <h3>Already working</h3>
+        <ul>
+          <li>Explainable recommender with sponsored labels and diversity re-rank (<code>src/lib/recommend.ts</code>)</li>
+          <li>Campaign console with roles, analytics, reports</li>
+          <li>Claude connector with 12 growth tools, a plugin and a social agent behind a human approval queue</li>
+          <li>Code-split, accessible front end that passes typecheck</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Gap 1: invisible to search</h3>
+        <ul>
+          <li>Pages render only in the browser, so Google and link previews see one generic page</li>
+          <li>No sitemap, robots.txt, Open Graph or structured data</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Gaps 2 and 3: no real data</h3>
+        <ul>
+          <li>Everything runs on sample data and <code>localStorage</code>; there is no backend yet</li>
+          <li>No event tracking, so we cannot tell clients which visit led to an install, or tune the recommender</li>
+        </ul>
+      </div>
+    </div>
+    <div class="loop" aria-label="Growth loop">
+      <span class="step">Acquire visitor</span><span class="arrow">→</span>
+      <span class="step">Land on an app page</span><span class="arrow">→</span>
+      <span class="step hot">Recommend</span><span class="arrow">→</span>
+      <span class="step">Install click</span><span class="arrow">→</span>
+      <span class="step">Measure</span><span class="arrow">→</span>
+      <span class="step">Learn &amp; re-rank</span><span class="arrow">↺</span>
+    </div>
+    <p class="muted">Every item in this plan feeds one step of this loop. The loop only compounds once the Measure step exists, which is why tracking comes first.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Ground rule</span>
+    <div class="callout warn">
+      <h3>Real people only</h3>
+      <p>No bots, click farms, incentivised fake installs or traffic exchanges. App stores and ad networks detect them, refuse the installs and can ban our clients' accounts. Our product is installs that stick, and clients will judge us on retention. Sponsored placements stay labelled, as the recommender already does.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Traffic channels</span>
+    <h2>What we build, channel by channel</h2>
+    <p class="muted">"Visitors see" is the public-site experience. It should feel like an app store they already know. "Team sees" is where our staff and clients run it from.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Channel</th><th>What we build</th><th>Visitors see</th><th>Team sees</th><th>Tools</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Technical SEO</td>
+            <td>Pre-render every public route to static HTML at build time, with per-page title, description, canonical URL, Open Graph image and <code>SoftwareApplication</code> JSON-LD (rating, downloads, price). Generate <code>sitemap.xml</code> and <code>robots.txt</code> from <code>src/data/apps.ts</code>.
+              <small>React Router 7 has a built-in prerender option; we move the router to its framework mode or add a small <code>scripts/prerender.mjs</code>.</small></td>
+            <td>Rich Google results with star ratings; proper link previews on WhatsApp, X and LinkedIn</td>
+            <td>Search Console coverage and queries on the Traffic page</td>
+            <td>Adspirer: Search Console, GA4</td>
+            <td><span class="pill p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>Programmatic landing pages</td>
+            <td>Auto-generated pages that match how people search: <code>/best/{category}-apps</code>, <code>/apps-like/{slug}</code>, <code>/{category}/{platform}</code>, <code>/free/{category}</code>. Ranking comes from the existing recommender; intro text is drafted by Claude and approved by an editor.
+              <small>Publish a page only when it has at least 5 live apps and a unique intro, to avoid thin-content penalties.</small></td>
+            <td>"Best fitness apps for iPhone" style list pages</td>
+            <td>Page inventory with indexed / ranking / traffic status</td>
+            <td>OshAds connector, Claude</td>
+            <td><span class="pill p0">P0</span></td>
+          </tr>
+          <tr>
+            <td>Editorial content</td>
+            <td>App of the Week, short reviews, "5 apps for back to school" collections, client success stories. Claude drafts into the existing approval queue (<code>growth/agent/review.ts</code>).</td>
+            <td>A Stories tab, like the App Store's Today tab</td>
+            <td>Draft → approve → publish queue, already built for social posts</td>
+            <td>OshAds connector, Claude Docs for briefs</td>
+            <td><span class="pill p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>Organic social</td>
+            <td>Extend the social agent: content calendar per client, post drafts with generated creatives, best-time-to-post scheduling, comment replies with escalation. Real engagement data feeds back from the platforms.</td>
+            <td>Short app demos and carousels linking to the app pages</td>
+            <td><code>/social-calendar</code> and <code>/social-replies</code> in the plugin; engagement on the dashboard</td>
+            <td>Windsor.ai (Instagram, TikTok, LinkedIn Pages, YouTube), banner-design skill</td>
+            <td><span class="pill have">Built</span> <span class="pill p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>Paid acquisition</td>
+            <td>Campaigns on Google (search and app campaigns), Meta, TikTok, LinkedIn, Microsoft and ChatGPT Ads that send people to our app pages, plus retargeting of visitors who viewed but did not install. Every campaign is created paused and launched only with human approval; weekly wasted-spend audits.</td>
+            <td>Ads that land on an OshAds app page, not the store directly, so the recommender can sell a second app</td>
+            <td>Spend, CPI and ROAS per client on the Campaign detail page</td>
+            <td>Adspirer (all ad platforms, Tag Manager), Windsor.ai for cross-channel reports</td>
+            <td><span class="pill p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>Email &amp; push retention</td>
+            <td>Weekly "Picked for you" email and opt-in web push built from <code>recommend()</code> and each visitor's history. Trigger emails: new app in a followed category, a reward about to expire.</td>
+            <td>A Follow button on categories and a Wishlist heart on apps</td>
+            <td>List growth, open rate and installs per send</td>
+            <td>Windsor.ai (Klaviyo), HubSpot for B2B leads</td>
+            <td><span class="pill p1">P1</span></td>
+          </tr>
+          <tr>
+            <td>Referral loop</td>
+            <td>Share links with a referral code on every app page. Uses the existing <code>reward</code> field: the visitor and the friend both unlock the app's exclusive offer.</td>
+            <td>"Share and you both get 1 month free"</td>
+            <td>Viral coefficient (K-factor) per app and campaign</td>
+            <td>Built in-house</td>
+            <td><span class="pill p2">P2</span></td>
+          </tr>
+          <tr>
+            <td>Badges &amp; widgets</td>
+            <td>A "Featured on OshAds" badge and an embeddable top-apps widget for client and publisher sites. Each one is a backlink and a referral source.</td>
+            <td>Badge on client websites</td>
+            <td>Embed code generator in the client's app settings</td>
+            <td>Built in-house</td>
+            <td><span class="pill p2">P2</span></td>
+          </tr>
+          <tr>
+            <td>AI answer engines</td>
+            <td>Structured data, an <code>llms.txt</code> file and clear comparison pages so ChatGPT, Claude, Perplexity and Google AI Overviews cite OshAds when people ask "what's a good budgeting app?".</td>
+            <td>OshAds pages quoted in AI answers</td>
+            <td>Referral traffic from AI assistants as its own source</td>
+            <td>Adspirer: ChatGPT Ads for the paid side</td>
+            <td><span class="pill p2">P2</span></td>
+          </tr>
+          <tr>
+            <td>Creators &amp; partners</td>
+            <td>Creator codes (the referral system with a payout), co-marketing with app communities and newsletters.</td>
+            <td>Creator collections, e.g. "Priya's productivity stack"</td>
+            <td>Partner payouts and traffic per creator</td>
+            <td>Built in-house</td>
+            <td><span class="pill p2">P2</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">On-site engine</span>
+    <h2>Algorithms that turn visits into installs</h2>
+    <p>More traffic only pays if each visit converts. These upgrade what we already have, in the order the data allows.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Problem</th><th>Algorithm</th><th>Where it goes</th><th>Needs</th></tr></thead>
+        <tbody>
+          <tr><td>Know what works</td><td>First-party event log: <code>page_view</code>, <code>rec_impression</code>, <code>rec_click</code>, <code>install_click</code>, <code>share</code>, with UTM source and campaign</td><td>New <code>/events</code> endpoint; client calls in <code>recordAppView</code> and AppCard</td><td>Backend (Phase 0)</td></tr>
+          <tr><td>Hand-tuned weights</td><td>Fit the five recommender weights with logistic regression on click and install outcomes. It stays explainable, so the "why" reasons keep working.</td><td><code>WEIGHTS</code> in <code>src/lib/recommend.ts</code>, refit nightly</td><td>~10k recommendation impressions</td></tr>
+          <tr><td>Which headline, banner or featured app</td><td>Thompson-sampling bandit: each option keeps a Beta(clicks+1, misses+1) belief; show the option with the highest random draw. It shifts traffic to winners automatically.</td><td>Hero, featured slots, email subject lines</td><td>Event log</td></tr>
+          <tr><td>"People also installed"</td><td>Item-to-item collaborative filtering (co-view and co-install counts), blended with the current content similarity</td><td>App detail page rail, <code>/apps-like/</code> pages</td><td>A few thousand sessions</td></tr>
+          <tr><td>Fair paid placement</td><td>Ad-rank auction: rank = bid × quality, where quality is the recommender's relevance and rating score. A big budget cannot buy a slot for an irrelevant app.</td><td>Replaces the fixed campaign boost in <code>campaignPressure</code></td><td>Self-serve bidding (revenue phase)</td></tr>
+          <tr><td>Even campaign delivery</td><td>PID pacing controller: compare installs delivered to the planned curve each hour and adjust the boost up or down</td><td><code>campaignPressure</code></td><td>Hourly install counts</td></tr>
+          <tr><td>New visitors with no history</td><td>Cold start: geo and device defaults, a 3-chip interest picker, then trending in their country</td><td>Home "For you" rail</td><td>Already possible today</td></tr>
+          <tr><td>When to post and send</td><td>Per-platform hour × weekday engagement score with time-decay; schedule into the top slots</td><td><code>growth/agent/social-agent.ts</code></td><td>Windsor.ai social data</td></tr>
+          <tr><td>Which pages to write next</td><td>Keyword gap scoring: search volume × (1 − our position / 20) × number of matching apps</td><td>New connector tool <code>content_opportunities</code></td><td>Search Console + keyword data</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre aria-label="Thompson sampling sketch">// Thompson sampling for a featured slot (sketch for src/lib/bandit.ts)
+function pick(arms: { id: string; clicks: number; views: number }[]) {
+  let best = arms[0], bestDraw = -1
+  for (const a of arms) {
+    const draw = sampleBeta(a.clicks + 1, a.views - a.clicks + 1)
+    if (draw > bestDraw) { bestDraw = draw; best = a }
+  }
+  return best.id
+}</pre>
+  </section>
+
+  <section>
+    <span class="eyebrow">Experience</span>
+    <h2>Familiar on both sides of the screen</h2>
+    <div class="grid3">
+      <div class="panel">
+        <h3>For visitors</h3>
+        <p class="muted" style="font-size:14px">Patterns borrowed from the App Store, Play Store and Product Hunt, so nothing needs explaining.</p>
+        <ul>
+          <li>"For you" rail with a one-line reason under each pick</li>
+          <li>Top Charts by category and country, with week-over-week movers</li>
+          <li>Collections and Stories tab</li>
+          <li>Wishlist, Follow category, Share for a reward</li>
+          <li>Visitor ratings and reviews (also strong SEO content)</li>
+          <li>Clear "Sponsored" chip, as today</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>For client accounts</h3>
+        <ul>
+          <li>One growth score per app, with the top 3 fixes</li>
+          <li>Source-to-install attribution: SEO, social, paid, email, referral</li>
+          <li>Weekly report emailed automatically (Reports page already exists)</li>
+          <li>Self-serve campaign wizard with budget and bid</li>
+          <li>Approve social drafts from the dashboard</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>For our team</h3>
+        <ul>
+          <li>Ask Claude in plain language through the OshAds connector: "Why did Northwind installs drop?"</li>
+          <li>Plugin commands: <code>/growth-plan</code>, <code>/social-calendar</code>, <code>/social-replies</code></li>
+          <li>New tools: <code>seo_audit</code>, <code>content_opportunities</code>, <code>experiment_results</code>, <code>spend_audit</code></li>
+          <li>Monday growth digest posted to Slack after a person approves it</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Connector stack</span>
+    <h2>AI connectors and plugins we use</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Connector / plugin</th><th>Job in this plan</th><th>Guardrail</th></tr></thead>
+        <tbody>
+          <tr><td>OshAds Growth (our MCP server)</td><td>Source of truth for clients, campaigns, recommendations, growth diagnosis and drafts. Point it at the live API with <code>OSHADS_API_URL</code>.</td><td>Read and draft only; people approve and publish</td></tr>
+          <tr><td>Adspirer</td><td>Launch and optimise Google, Meta, TikTok, LinkedIn, Microsoft, Amazon and ChatGPT ads; GA4, Search Console and Tag Manager checks; competitor ad research</td><td>Campaigns created paused; spend needs explicit approval</td></tr>
+          <tr><td>Windsor.ai</td><td>One reporting layer across ads, organic social, GA4, Klaviyo and HubSpot; weekly performance reviews per client</td><td>Read-only by default</td></tr>
+          <tr><td>Claude design skills (banner-design, brand)</td><td>Ad and social creatives in each client's brand, in every platform size</td><td>Brand review before use</td></tr>
+          <tr><td>Slack, Linear / Asana, Notion</td><td>Digests, a task per growth recommendation, a shared playbook</td><td>Messages sent only after approval</td></tr>
+          <tr><td>GitHub, Datadog</td><td>Ship the engineering work; watch site speed and errors, since Core Web Vitals affect ranking</td><td>Normal review process</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Adspirer, Windsor.ai, Slack and the other engineering connectors need to be authorised in the connector settings before use. The OshAds Growth server timed out when this plan was written and needs a restart.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Roadmap</span>
+    <h2>90 days, in three phases</h2>
+    <div class="phases">
+      <div class="phase">
+        <div class="when">Days 0–30<b>Foundations</b></div>
+        <div class="body">
+          <ul>
+            <li>Backend (Node + Postgres) behind <code>services/api.ts</code>; move login server-side and remove passwords from the bundle</li>
+            <li>Event tracking endpoint and consent banner (GDPR/CCPA) before any pixel loads</li>
+            <li>Pre-rendering, per-page meta, JSON-LD, sitemap, robots.txt; submit to Search Console</li>
+            <li>Connect GA4, Search Console and Tag Manager through Adspirer; Windsor.ai for reporting</li>
+            <li>Unit tests for <code>recommend.ts</code>; drop gsap in favour of framer-motion to slim the main bundle</li>
+          </ul>
+          <p class="exit">Done when: all public pages are indexed with their own titles, and an install click can be traced back to its source.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="when">Days 31–60<b>Channels</b></div>
+        <div class="body">
+          <ul>
+            <li>First 200 programmatic pages, each with an editor-approved intro</li>
+            <li>Social agent on live data for 3 pilot clients; best-time scheduling</li>
+            <li>First paid campaigns to app pages, with retargeting, for pilot clients</li>
+            <li>Wishlist, Follow category and the weekly "Picked for you" email</li>
+            <li>Attribution view on the dashboard</li>
+          </ul>
+          <p class="exit">Done when: each pilot client gets a weekly report showing installs by channel.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="when">Days 61–90<b>Optimise</b></div>
+        <div class="body">
+          <ul>
+            <li>Thompson-sampling bandit on hero and featured slots</li>
+            <li>Refit recommender weights from real outcomes; add "people also installed"</li>
+            <li>Referral links with rewards; Featured-on-OshAds badge</li>
+            <li>New connector tools: <code>seo_audit</code>, <code>content_opportunities</code>, <code>experiment_results</code></li>
+          </ul>
+          <p class="exit">Done when: recommendation click-through and organic sessions both beat the Day-30 baseline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Measurement</span>
+    <h2>KPIs we report every week</h2>
+    <p class="muted">Targets are set after 30 days of real data. Today's dashboard numbers are sample data and must not be shown to clients as results.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Layer</th><th>Metric</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Reach</td><td>Indexed pages, organic sessions, sessions by channel</td><td>Is the acquisition engine growing?</td></tr>
+          <tr><td>Engagement</td><td>Recommendation click-through, pages per session, return visitors</td><td>Is the recommender doing its job?</td></tr>
+          <tr><td>Outcome</td><td>Install clicks, cost per install, installs per 1,000 visits</td><td>What clients pay for</td></tr>
+          <tr><td>Quality</td><td>Day-7 retention of referred installs (from client store data)</td><td>Proves the traffic is real and protects renewals</td></tr>
+          <tr><td>Business</td><td>Revenue per visitor, client retention, net revenue retention</td><td>Is OshAds growing?</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Future scope</span>
+    <h2>Revenue streams the platform can grow into</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Stream</th><th>How it works</th><th>Builds on</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>Performance pricing (CPI / CPA)</td><td>Clients pay per verified install or in-app action instead of a flat fee. Higher margin once our conversion rate is known.</td><td>Event tracking, attribution</td><td><span class="pill p1">Q1</span></td></tr>
+          <tr><td>Tiered subscriptions</td><td>Starter / Growth / Enterprise plans: number of apps, channels managed, social agent seats, report depth. Client tiers already exist in the data model.</td><td>Clients, roles</td><td><span class="pill p1">Q1</span></td></tr>
+          <tr><td>Self-serve sponsored placements</td><td>Advertisers top up a wallet (Stripe) and bid in the ad-rank auction for For-you, category and search slots. Turns the console into an ad network.</td><td>Campaign wizard, auction</td><td><span class="pill p1">Q2</span></td></tr>
+          <tr><td>AI growth assistant as a product</td><td>Sell the OshAds connector and plugin to clients: their own Claude-powered growth manager for diagnosis, calendars, replies and reports.</td><td><code>growth/mcp</code>, plugin</td><td><span class="pill p1">Q2</span></td></tr>
+          <tr><td>Creative studio</td><td>Per-asset or monthly fee for AI-generated ad sets, store screenshots and social packs in the client's brand, reviewed by our designers.</td><td>Design skills, AppScreen renderer</td><td><span class="pill p2">Q2</span></td></tr>
+          <tr><td>ASO service</td><td>App Store Optimisation: keyword research, listing copy and screenshot tests for each client's store page.</td><td>Keyword scoring, creative studio</td><td><span class="pill p2">Q3</span></td></tr>
+          <tr><td>Publisher network &amp; API</td><td>Other sites embed our widget or call a recommendations API; revenue shared on installs they drive.</td><td>Widgets, <code>recommend()</code></td><td><span class="pill p2">Q3</span></td></tr>
+          <tr><td>Benchmark reports</td><td>Paid quarterly reports: category install trends, CPI by country, what is growing. Anonymised and aggregated only.</td><td>Analytics data</td><td><span class="pill p2">Q3</span></td></tr>
+          <tr><td>Attribution SDK</td><td>A light SDK in client apps confirms installs and in-app events, which unlocks true CPA pricing and retention reporting.</td><td>Event pipeline</td><td><span class="pill p2">Q4</span></td></tr>
+          <tr><td>Affiliate &amp; rewards</td><td>Store affiliate programmes and a visitor loyalty programme (points for discovering and reviewing apps).</td><td>Referral loop</td><td><span class="pill p2">Q4</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Risks</span>
+    <h2>What could go wrong, and the guardrail</h2>
+    <ul>
+      <li><b>Thin programmatic pages get penalised.</b> Minimum 5 apps and a unique, approved intro per page; noindex anything below the bar.</li>
+      <li><b>Privacy and consent.</b> Consent before pixels or retargeting; no personal data in URLs; data processing agreements with each connector vendor.</li>
+      <li><b>Undisclosed ads.</b> Keep the Sponsored chip on every paid placement and disclose creator partnerships (FTC and ASA rules).</li>
+      <li><b>Runaway ad spend.</b> Paused-by-default campaigns, budget caps and human approval, as the Adspirer guardrails already enforce.</li>
+      <li><b>AI mistakes in public.</b> Every AI-written post, reply and page goes through the approval queue; nothing auto-publishes.</li>
+      <li><b>Demo-only security.</b> Client-side login must be replaced before any real client data goes in.</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="eyebrow">Next sprint</span>
+    <h2>First two weeks of tickets</h2>
+    <ol>
+      <li>Add pre-rendering and per-route meta with JSON-LD for <code>/app/:slug</code>, <code>/categories/:slug</code> and <code>/trending</code></li>
+      <li>Generate <code>sitemap.xml</code> and <code>robots.txt</code> at build time from <code>src/data/apps.ts</code> and categories</li>
+      <li>Define the event schema and send <code>rec_impression</code>, <code>rec_click</code> and <code>install_click</code> from AppCard and the detail page</li>
+      <li>Stand up the API and implement the endpoints <code>growth/core/data.ts</code> already expects (<code>/apps</code>, <code>/clients</code>, <code>/campaigns</code>, <code>/analytics/*</code>)</li>
+      <li>Authorise Adspirer and Windsor.ai; connect GA4 and Search Console for the OshAds domain</li>
+      <li>Write tests for <code>recommend.ts</code>: excludes installed apps, caps the campaign boost, keeps categories diverse</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Based on a review of the Prototype2 codebase on 21 Oct 2026. Data in the current build is sample data; no traffic figures in this plan are measured.</span>
+  </footer>
+</main>
