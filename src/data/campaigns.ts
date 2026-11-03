@@ -74,6 +74,6 @@ export const campaigns: Campaign[] = seeds.map((s, i) => {
     },
     sources: allSources.filter(() => rnd.next() > 0.35).concat('Campaign').filter((v, idx, arr) => arr.indexOf(v) === idx),
     createdAt: toISODate(addDays(start, -rnd.int(5, 20))),
-    createdBy: rnd.pick(['u_priya', 'u_marcus']),
+    createdBy: 'u_priya',
   }
 })

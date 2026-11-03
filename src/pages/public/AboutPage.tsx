@@ -76,7 +76,26 @@ export default function AboutPage() {
       <section id="privacy" className="container-page pb-20 text-sm text-muted">
         <div className="rounded-[20px] glass p-6">
           <h2 className="font-display text-lg font-bold text-fg">Privacy & terms</h2>
-          <p className="mt-2 max-w-3xl">We store your theme, interests and recent searches only in your browser. Outbound store clicks are counted anonymously to attribute campaign performance. <span id="terms">Use of OshAds is subject to our standard terms of service.</span></p>
+          <div className="mt-2 max-w-3xl space-y-2">
+            <p>
+              <span className="text-fg">What we count.</span> Pages you open, app cards you see, apps you open, Download and website clicks, searches,
+              category filters, games you start, how long a page is open and how far you scroll. This tells our clients how their apps perform.
+            </p>
+            <p>
+              <span className="text-fg">Without cookies (default).</span> You get an anonymous code that changes every day, so we can count visits but
+              can’t recognise you tomorrow. We don’t store your IP address. Browsers that send “Do Not Track” or Global Privacy Control are not counted.
+            </p>
+            <p>
+              <span className="text-fg">If you accept cookies.</span> We set one first-party cookie, <code>osh_vid</code>, for a year, so we can tell
+              when you come back. It holds a random code, nothing about you, and isn’t shared with anyone. Change your mind any time under “Cookie
+              settings” at the bottom of the page.
+            </p>
+            <p>
+              <span className="text-fg">Kept in your browser.</span> Your theme, interests, recent searches, game scores and Osh coin wallet ID. Clearing
+              your browser data removes them.
+            </p>
+            <p id="terms">Use of OshAds is subject to our standard terms of service.</p>
+          </div>
         </div>
       </section>
     </PageTransition>

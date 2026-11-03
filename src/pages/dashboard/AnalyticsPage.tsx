@@ -110,17 +110,71 @@ function Engagement() {
       ]
     : null
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {stats
-        ? stats.map(([k, v, d]) => (
-            <div key={k} className="card p-5">
-              <p className="text-[13px] text-muted">{k}</p>
-              <p className="num mt-2 font-display text-2xl font-bold text-fg">{v}</p>
-              <p className="mt-1 text-xs text-subtle">{d}</p>
-            </div>
-          ))
-        : Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats
+          ? stats.map(([k, v, d]) => (
+              <div key={k} className="card p-5">
+                <p className="text-[13px] text-muted">{k}</p>
+                <p className="num mt-2 font-display text-2xl font-bold text-fg">{v}</p>
+                <p className="mt-1 text-xs text-subtle">{d}</p>
+              </div>
+            ))
+          : Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+      </div>
+      <EngagementDetail />
     </div>
+  )
+}
+
+/** Time, scroll, returning visitors and what people used on the site, from the new engagement events. */
+function EngagementDetail() {
+  const { range } = useDashboard()
+  const { data } = useQuery(`analytics:engagement:${rangeKeyOf(range)}`, () => analyticsService.engagement(range), { keepPrevious: true })
+  if (!data) return <Skeleton className="h-40 rounded-2xl" />
+  const minutes = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`)
+  const cards: Array<[string, string, string]> = [
+    ['Avg. time on page', minutes(data.avgSeconds), 'While the tab was visible'],
+    ['Avg. scroll depth', `${data.avgScroll}%`, 'How far down pages people read'],
+    ['Returning visitors', formatNumber(data.returning), data.consented ? `${formatPercent(safeDiv(data.returning, data.consented) * 100)} of ${formatNumber(data.consented)} who accepted cookies` : 'Counts visitors who accepted cookies'],
+    ['Website & LinkedIn clicks', formatNumber(data.outbound.reduce((a, o) => a + o.count, 0)), data.outbound.map((o) => `${o.label} ${o.count}`).join(' · ') || 'From app pages'],
+  ]
+  const lists: Array<[string, Array<{ label: string; count: number }>, string]> = [
+    ['Games started', data.games, 'No games played yet'],
+    ['Top searches', data.searches, 'No searches yet'],
+    ['Category filters', data.filters, 'No filters used yet'],
+  ]
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {cards.map(([k, v, d]) => (
+          <div key={k} className="card p-5">
+            <p className="text-[13px] text-muted">{k}</p>
+            <p className="num mt-2 font-display text-2xl font-bold text-fg">{v}</p>
+            <p className="mt-1 truncate text-xs text-subtle">{d}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {lists.map(([title, rows, empty]) => (
+          <div key={title} className="card p-5">
+            <p className="text-[13px] font-medium text-fg">{title}</p>
+            {rows.length ? (
+              <ul className="mt-3 space-y-1.5 text-[13px]">
+                {rows.map((r) => (
+                  <li key={r.label} className="flex justify-between gap-3">
+                    <span className="truncate text-muted">{r.label}</span>
+                    <span className="num font-semibold text-fg">{formatNumber(r.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-xs text-subtle">{empty}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 

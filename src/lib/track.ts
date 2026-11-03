@@ -1,5 +1,5 @@
 /** Sends anonymous traffic events to the first-party counter (server/events.ts). No cookies, no IDs on the device. */
-export type TrackEvent = 'page_view' | 'app_view'
+export type TrackEvent = 'page_view' | 'app_view' | 'game_start' | 'search' | 'filter' | 'page_time' | 'scroll' | 'outbound'
 
 const ENDPOINT = import.meta.env.VITE_EVENTS_URL ?? '/api/events'
 let last = { key: '', at: 0 }
@@ -33,13 +33,51 @@ function send(payload: Record<string, unknown>) {
   fetch(ENDPOINT, { method: 'POST', body, keepalive: true }).catch(() => {})
 }
 
-export function track(type: TrackEvent, appId?: string) {
-  if (optedOut()) return
+/** `label` names what was used (a game, a search term, a category); `value` is a number (seconds, % scrolled). */
+export function track(type: TrackEvent, appId?: string, extra: { label?: string; value?: number } = {}) {
+  if (optedOut() || isStaffPage()) return
   // StrictMode and quick re-renders fire effects twice; one event per action per second.
-  const key = `${type}|${appId ?? ''}|${location.pathname}`
+  const key = `${type}|${appId ?? ''}|${extra.label ?? ''}|${location.pathname}`
   if (key === last.key && Date.now() - last.at < 1000) return
   last = { key, at: Date.now() }
-  send({ type, appId })
+  send({ type, appId, ...extra })
+}
+
+/**
+ * Measures one page view: seconds the tab was visible and the deepest point scrolled (%).
+ * Returns a stop function that sends both; call it when the route changes. Also sends on tab close.
+ */
+export function measurePage() {
+  let visibleMs = 0
+  let since = document.hidden ? 0 : performance.now()
+  let deepest = 0
+  const onScroll = () => {
+    const max = document.documentElement.scrollHeight - innerHeight
+    deepest = Math.max(deepest, max > 0 ? Math.round((scrollY / max) * 100) : 100)
+  }
+  const onVisibility = () => {
+    if (document.hidden) visibleMs += since ? performance.now() - since : 0
+    since = document.hidden ? 0 : performance.now()
+  }
+  let sent = false
+  const stop = () => {
+    if (sent) return
+    sent = true
+    onVisibility()
+    removeEventListener('scroll', onScroll)
+    document.removeEventListener('visibilitychange', onVisibility)
+    removeEventListener('pagehide', stop)
+    const seconds = Math.round((visibleMs + (since ? performance.now() - since : 0)) / 1000)
+    if (seconds >= 1) {
+      track('page_time', undefined, { value: seconds })
+      track('scroll', undefined, { value: deepest })
+    }
+  }
+  onScroll()
+  addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('visibilitychange', onVisibility)
+  addEventListener('pagehide', stop)
+  return stop
 }
 
 /* Impressions: each app card counts once per page view, sent in one batch. */

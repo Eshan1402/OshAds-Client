@@ -144,6 +144,40 @@ export function campaignStats(c: Campaign, w?: Window) {
   return { impressions: t.impressions, clicks: t.clicks, downloads: t.downloads, revenue: spent, spent }
 }
 
+/**
+ * Engagement in the window. "Returning" needs the consent cookie (visitor ids starting with "c"):
+ * a consenting visitor counts as returning when they were active on at least two different days.
+ */
+export function engagement(w: Window) {
+  const { start, end } = bounds(w)
+  const one = (q: string, ...p: unknown[]) => sql.prepare(q).get(...(p as never[])) as Record<string, unknown>
+  const top = (type: string, limit = 8) =>
+    sql
+      .prepare(`SELECT label, COUNT(*) AS n FROM events WHERE type = ? AND label IS NOT NULL AND ts >= ? AND ts < ? GROUP BY label ORDER BY n DESC LIMIT ${limit}`)
+      .all(type, start, end)
+      .map((r) => ({ label: String(r.label), count: n(r.n) }))
+  const consented = n(one("SELECT COUNT(DISTINCT visitor) AS v FROM events WHERE visitor LIKE 'c%' AND ts >= ? AND ts < ?", start, end).v)
+  const returning = n(
+    one(
+      `SELECT COUNT(*) AS v FROM (SELECT visitor FROM events WHERE visitor LIKE 'c%' AND ts < ?
+         GROUP BY visitor HAVING COUNT(DISTINCT day) >= 2 AND MAX(ts) >= ?)`,
+      end,
+      start,
+    ).v,
+  )
+  const avg = (type: string) => n(one('SELECT AVG(value) AS v FROM events WHERE type = ? AND value IS NOT NULL AND ts >= ? AND ts < ?', type, start, end).v)
+  return {
+    consented,
+    returning,
+    avgSeconds: Math.round(avg('page_time')),
+    avgScroll: Math.round(avg('scroll')),
+    games: top('game_start'),
+    searches: top('search'),
+    filters: top('filter'),
+    outbound: top('outbound'),
+  }
+}
+
 /** Everything the analytics screens need for one window, plus the same totals for the window before it. */
 export function bundle(w: Window, appIds: string[] | null, campaigns: Campaign[]) {
   const days = w.hourly ? 1 : Math.round((Date.parse(w.to) - Date.parse(w.from)) / DAY_MS) + 1
@@ -162,6 +196,7 @@ export function bundle(w: Window, appIds: string[] | null, campaigns: Campaign[]
     countries: breakdown(w, appIds, 'country'),
     apps: Object.fromEntries(perApp(w)),
     campaigns: Object.fromEntries(campaigns.map((c) => [c.id, campaignStats(c, w)])),
+    engagement: appIds ? null : engagement(w),
   }
 }
 

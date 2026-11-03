@@ -32,9 +32,10 @@ const palettes: Array<[string, string]> = [
 type Draft = Omit<MobileApp, 'id' | 'slug' | 'ratingDistribution' | 'trackingUrl'> & { trackingUrl: string }
 
 const blank: Draft = {
-  name: '', tagline: '', description: '', category: 'loans', clientId: '', developer: '', platforms: ['ios', 'android'],
-  rating: 4.5, ratingCount: 0, downloads: 0, size: '—', version: '1.0.0', updatedAt: new Date().toISOString().slice(0, 10), ageRating: '4+',
-  icon: 'sparkles', colors: palettes[0], archetype: 'list', screenshots: 4,
+  // No made-up numbers: rating, downloads and screenshots start empty until real ones are entered.
+  name: '', tagline: '', description: '', category: 'loans', clientId: '', developer: '', platforms: [],
+  rating: 0, ratingCount: 0, downloads: 0, size: '', version: '', updatedAt: new Date().toISOString().slice(0, 10), ageRating: '',
+  icon: 'sparkles', colors: palettes[0], archetype: 'list', screenshots: 0,
   features: [{ icon: 'zap', title: '', description: '' }], benefits: [''], tags: [], weeklyGrowth: 0, appStoreUrl: '', playStoreUrl: '',
   trackingUrl: '', status: 'draft', screenshotImages: [],
 }
@@ -68,12 +69,10 @@ export default function AppFormPage() {
     if (d.tagline.trim().length < 6) e.tagline = 'Add a short, benefit-led tagline.'
     if (d.description.trim().length < 40) e.description = 'Description should be at least 40 characters.'
     if (!d.clientId) e.clientId = 'Select the client (developer).'
-    if (!d.platforms.length) e.platforms = 'Choose at least one platform.'
     if (d.platforms.includes('ios') && !/^https:\/\/apps\.apple\.com\//.test(d.appStoreUrl ?? '')) e.appStoreUrl = 'Enter an App Store URL (https://apps.apple.com/…).'
     if (d.platforms.includes('android') && !/^https:\/\/play\.google\.com\//.test(d.playStoreUrl ?? '')) e.playStoreUrl = 'Enter a Google Play URL (https://play.google.com/…).'
     if (d.rating < 0 || d.rating > 5) e.rating = 'Rating must be between 0 and 5.'
-    if (d.trackingUrl && !/^https:\/\//.test(d.trackingUrl)) e.trackingUrl = 'Tracking URL must use https://'
-    if (!d.features.some((f) => f.title.trim())) e.features = 'Add at least one key feature.'
+    if (!/^https:\/\/\S+$/.test(d.trackingUrl)) e.trackingUrl = 'Enter the link visitors are sent to, starting with https://'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -92,7 +91,7 @@ export default function AppFormPage() {
       archetype: archetypeFor[d.category],
       features: d.features.filter((f) => f.title.trim()),
       benefits: d.benefits.filter((b) => b.trim()),
-      screenshots: Math.max(3, d.screenshotImages?.length || d.screenshots),
+      screenshots: d.screenshotImages?.length ?? 0, // only real uploaded screens
     }
     try {
       const saved = editing ? await appsService.update(id!, payload) : await appsService.create(payload)
@@ -188,7 +187,7 @@ export default function AppFormPage() {
                   </Select>
                 )}
               </Field>
-              <Field label="Platforms" required error={errors.platforms}>
+              <Field label="Platforms" error={errors.platforms} hint="Only if the app is on a store; website-only listings need none.">
                 {() => (
                   <div className="flex h-10 items-center gap-5">
                     {(['ios', 'android'] as Platform[]).map((p) => (
@@ -208,7 +207,17 @@ export default function AppFormPage() {
             <CardBody className="grid gap-4 sm:grid-cols-2">
               <Field label="App Store URL" error={errors.appStoreUrl} required={d.platforms.includes('ios')}>{({ id, invalid }) => <Input id={id} invalid={invalid} disabled={!d.platforms.includes('ios')} value={d.appStoreUrl ?? ''} onChange={(e) => set('appStoreUrl', e.target.value)} placeholder="https://apps.apple.com/app/…" />}</Field>
               <Field label="Play Store URL" error={errors.playStoreUrl} required={d.platforms.includes('android')}>{({ id, invalid }) => <Input id={id} invalid={invalid} disabled={!d.platforms.includes('android')} value={d.playStoreUrl ?? ''} onChange={(e) => set('playStoreUrl', e.target.value)} placeholder="https://play.google.com/store/apps/details?id=…" />}</Field>
-              <Field label="Tracking URL" error={errors.trackingUrl} hint="Leave empty to generate an OshAds tracking link." className="sm:col-span-2">{({ id, invalid, describedBy }) => <Input id={id} invalid={invalid} aria-describedby={describedBy} className="font-mono text-xs" value={d.trackingUrl} onChange={(e) => set('trackingUrl', e.target.value)} />}</Field>
+              <Field
+                label="Tracking URL"
+                required
+                error={errors.trackingUrl}
+                hint={
+                  d.trackingUrl.includes('{click_id}')
+                    ? 'Installs can be confirmed automatically: {click_id} is replaced with each click’s ID.'
+                    : 'Paste the advertiser’s tracking link and put {click_id} where it expects your click ID, so installs are confirmed automatically. Without it, staff confirm installs by hand.'
+                }
+                className="sm:col-span-2"
+              >{({ id, invalid, describedBy }) => <Input id={id} invalid={invalid} aria-describedby={describedBy} className="font-mono text-xs" value={d.trackingUrl} onChange={(e) => set('trackingUrl', e.target.value)} />}</Field>
               <Field label="Store rating" error={errors.rating}>{({ id, invalid }) => <Input id={id} invalid={invalid} type="number" step={0.1} min={0} max={5} value={d.rating} onChange={(e) => set('rating', Number(e.target.value))} />}</Field>
               <Field label="Download count">{({ id }) => <Input id={id} type="number" min={0} step={1000} value={d.downloads} onChange={(e) => set('downloads', Number(e.target.value))} />}</Field>
             </CardBody>

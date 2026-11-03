@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { openCookieSettings } from './CookieConsent'
 import { useStaggerReveal } from '@/hooks/useStaggerReveal'
 import { categories } from '@/data/categories'
 import { Logo } from '@/components/ui/Logo'
@@ -29,6 +30,7 @@ export function PublicFooter() {
           <p className="flex gap-4">
             <Link to="/about#privacy" className="inline-flex min-h-10 items-center hover:text-fg sm:min-h-0">Privacy</Link>
             <Link to="/about#terms" className="inline-flex min-h-10 items-center hover:text-fg sm:min-h-0">Terms</Link>
+            <button type="button" onClick={openCookieSettings} className="inline-flex min-h-10 items-center hover:text-fg sm:min-h-0">Cookie settings</button>
             <Link to="/about#trust" className="inline-flex min-h-10 items-center hover:text-fg sm:min-h-0">Advertising disclosure</Link>
           </p>
         </div>

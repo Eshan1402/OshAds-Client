@@ -1,6 +1,7 @@
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { VelocityMarquee } from '@/components/motion/VelocityMarquee'
 import { Hero } from './home/Hero'
+import { GamesSection } from './home/Games'
 import { PerksSection } from './home/Perks'
 import { RecentlyViewed } from './home/RecentlyViewed'
 import { ExpandingCTA, PinnedTrending, StoryScroll } from './home/ScrollSections'
@@ -23,6 +24,8 @@ export default function HomePage() {
       <RecentlyViewed />
       {/* 4. Personalise — a two-tap interaction early creates investment */}
       <RecommendedSection />
+      {/* 4b. Play — a light, interactive break right after the personal picks */}
+      <GamesSection />
       {/* 5. Momentum — what’s hot, as a pinned, playful scroll moment */}
       <PinnedTrending />
       {/* 6. Reward — perks land after the visitor has seen apps they want */}

@@ -4,6 +4,7 @@ import { publish } from './realtime'
 import { slugify } from '@/utils/format'
 import { source } from '@/lib/track'
 import { walletId } from './rewardsService'
+import { AGE_KEY } from '@/data/apps'
 
 export type AppSort = 'popular' | 'rating' | 'trending' | 'newest' | 'name'
 
@@ -17,6 +18,13 @@ export interface AppQuery {
 }
 
 const isPublic = (a: MobileApp) => a.status === 'live'
+const ageConfirmed = () => {
+  try {
+    return localStorage.getItem(AGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 export function matchesQuery(app: MobileApp, q: string) {
   const needle = q.trim().toLowerCase()
@@ -105,7 +113,7 @@ export const appsService = {
     const res = await fetch('/api/click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appId: app.id, store, walletId: walletId(true), source: source() }),
+      body: JSON.stringify({ appId: app.id, store, walletId: walletId(true), source: source(), adult: ageConfirmed() }),
     }).catch(() => {
       throw new ApiError('Can’t reach the server. Check your connection.', 0)
     })
@@ -114,14 +122,13 @@ export const appsService = {
     return body
   },
 
-  create(input: Omit<MobileApp, 'id' | 'slug' | 'trackingUrl' | 'ratingDistribution'> & Partial<Pick<MobileApp, 'trackingUrl'>>) {
+  create(input: Omit<MobileApp, 'id' | 'slug' | 'ratingDistribution'>) {
     const slug = slugify(input.name)
     const app: MobileApp = {
       ...input,
       id: newId('app'),
       slug,
       ratingDistribution: [0.7, 0.18, 0.06, 0.02, 0.04],
-      trackingUrl: input.trackingUrl || `https://trk.oshads.com/c/${slug}?src=owned&sub1={click_id}`,
     }
     return save('apps', app, { create: true })
   },

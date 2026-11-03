@@ -7,7 +7,8 @@ import { useToast } from '@/context/ToastContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { recordAppView } from '@/hooks/useRecentlyViewed'
 import { track } from '@/lib/track'
-import { REWARD_COINS } from '@/data/apps'
+import { AGE_GATED, AGE_KEY, REWARD_COINS } from '@/data/apps'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useQuery } from '@/hooks/useQuery'
 import { ApiError } from '@/services/api'
 import { appsService } from '@/services/appsService'
@@ -99,6 +100,7 @@ export default function AppDetailPage() {
   const { data: app, error, refetch } = useQuery(`apps:detail:${slug}`, () => appsService.getBySlug(slug))
   const similar = useQuery(app ? `apps:similar:${app.id}` : null, () => appsService.similar(app!.id, 4))
   const { go, pending } = useDownload(app)
+  const [adult, setAdult] = useLocalStorage(AGE_KEY, false)
   useDocumentTitle(app?.name)
   useEffect(() => {
     if (!app) return
@@ -122,6 +124,23 @@ export default function AppDetailPage() {
     return <ErrorState error={error} onRetry={refetch} className="container-page py-20" />
   }
   if (!app) return <DetailSkeleton />
+  if (AGE_GATED.includes(app.category) && !adult) {
+    return (
+      <div className="container-page py-20">
+        <EmptyState
+          icon={<ShieldCheck />}
+          title="Are you 18 or older?"
+          description={`${app.name} is a ${categoryBySlug[app.category].name.toLowerCase()} app, listed for adults only. Confirm your age to see it.`}
+          action={
+            <>
+              <ButtonLink to="/explore" variant="outline">No, take me back</ButtonLink>
+              <Button onClick={() => setAdult(true)}>Yes, I’m 18 or older</Button>
+            </>
+          }
+        />
+      </div>
+    )
+  }
 
   const cat = categoryBySlug[app.category]
   const ratingBars = app.ratingDistribution
@@ -169,8 +188,8 @@ export default function AppDetailPage() {
                 <p className="mt-1 text-[15px] text-muted">{app.tagline}</p>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-subtle">
                   <span>by <span className="font-medium text-fg">{app.developer}</span></span>
-                  {app.website && <a href={app.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-text hover:underline">{new URL(app.website).hostname.replace(/^www\./, '')} <ExternalLink className="size-3" aria-hidden /></a>}
-                  {app.linkedinUrl && <a href={app.linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-text hover:underline">LinkedIn <ExternalLink className="size-3" aria-hidden /></a>}
+                  {app.website && <a href={app.website} target="_blank" rel="noopener noreferrer" onClick={() => track('outbound', app.id, { label: 'website' })} className="inline-flex items-center gap-1 text-accent-text hover:underline">{new URL(app.website).hostname.replace(/^www\./, '')} <ExternalLink className="size-3" aria-hidden /></a>}
+                  {app.linkedinUrl && <a href={app.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('outbound', app.id, { label: 'linkedin' })} className="inline-flex items-center gap-1 text-accent-text hover:underline">LinkedIn <ExternalLink className="size-3" aria-hidden /></a>}
                 </p>
               </div>
             </div>

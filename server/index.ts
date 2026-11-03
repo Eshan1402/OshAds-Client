@@ -6,6 +6,7 @@
  *            POST /api/events                 traffic event or impression batch (see src/lib/track.ts)
  *            POST /api/click                  Download click → { redirect, clickId, reward }
  *            GET  /api/wallet/:walletId       Osh coins for an anonymous browser wallet
+ *            POST /api/consent { accept }     cookie choice: sets or clears the returning-visitor cookie
  *            GET  /api/postback?click_id&event=install&payout&key   advertiser tracker confirms an install
  *   Auth     POST /api/auth/login | /api/auth/logout    GET /api/auth/session
  *   Staff    GET  /api/db                     everything the dashboard needs (signed in)
@@ -21,14 +22,17 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
-import { timingSafeEqual } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { recommend } from '../src/lib/recommend'
+import { AGE_GATED } from '../src/data/apps'
 import type { Campaign, CategorySlug, Client, MobileApp, Permission } from '../src/types'
 import * as auth from './auth'
+import * as google from './google'
 import { allDocs, KINDS, putDoc, seedDocs, type Doc, type Kind } from './db'
 import { bundle, campaignStats, liveVisitors } from './analytics'
 import { appTrends, cleanSource, recordEvent, stats, visitOf } from './events'
 import * as rewards from './rewards'
+import { limiter } from './limit'
 
 const PORT = Number(process.env.PORT ?? 8788)
 const STATS_TOKEN = process.env.STATS_TOKEN ?? ''
@@ -50,7 +54,7 @@ class HttpError extends Error {
   }
 }
 
-function send(res: ServerResponse, status: number, body?: unknown, headers: Record<string, string> = {}) {
+function send(res: ServerResponse, status: number, body?: unknown, headers: Record<string, string | string[]> = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers })
   res.end(body === undefined ? '' : JSON.stringify(body))
 }
@@ -92,7 +96,14 @@ function countryOf(req: IncomingMessage) {
   return null
 }
 
-const visit = (req: IncomingMessage) => visitOf(clientIp(req), String(req.headers['user-agent'] ?? ''), countryOf(req))
+// Set only after the visitor accepts cookies (POST /api/consent): recognises them across days.
+const VISITOR_COOKIE = 'osh_vid'
+const visitorCookie = (req: IncomingMessage) => /(?:^|;\s*)osh_vid=([\w-]{16,64})/.exec(req.headers.cookie ?? '')?.[1] ?? null
+const visit = (req: IncomingMessage) => visitOf(clientIp(req), String(req.headers['user-agent'] ?? ''), countryOf(req), visitorCookie(req))
+
+/** Links a visitor can be sent to must be ordinary web addresses: a `javascript:` link would run code on our site. */
+const URL_FIELDS = ['website', 'trackingUrl', 'appStoreUrl', 'playStoreUrl', 'linkedinUrl'] as const
+const isWebUrl = (v: unknown) => typeof v === 'string' && /^https?:\/\/[^\s]+$/i.test(v)
 
 const safeEqual = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b))
 
@@ -134,6 +145,19 @@ function withTrending(apps: MobileApp[]) {
   return apps.map((a) => (rank.has(a.id) ? { ...a, trendingRank: rank.get(a.id), weeklyGrowth: trends.get(a.id)?.growth ?? 0 } : a))
 }
 
+// Per-IP, per-minute caps on the public endpoints. Generous because mobile carriers put many people behind one IP.
+const LIMITS: Array<[RegExp, (ip: string) => boolean]> = [
+  [/^\/api\/events$/, limiter(600, 60_000)],
+  [/^\/api\/click$/, limiter(30, 60_000)],
+  [/^\/api\/(consent|wallet\/)/, limiter(60, 60_000)],
+  [/^\/api\//, limiter(1200, 60_000)], // everything else, including the dashboard
+]
+
+/** Must match an "Authorized redirect URI" in Google Cloud. Set SITE_URL in production so it's always the https address. */
+const googleRedirect = (req: IncomingMessage) => `${(process.env.SITE_URL ?? `http://${req.headers.host}`).replace(/\/$/, '')}/api/auth/google/callback`
+const oauthCookie = (value: string, maxAge: number) =>
+  `g_oauth=${value}; Max-Age=${maxAge}; Path=/api/auth/google; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+
 const isoDay = (s: string | null) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null)
 const list = (s: string | null, max: number) => (s ? s.split(',').filter(Boolean).slice(0, max) : [])
 
@@ -141,6 +165,8 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   const { pathname } = url
   const method = req.method ?? 'GET'
   if (method !== 'GET' && !sameOrigin(req)) throw new HttpError(403, 'Cross-site request blocked')
+  const limited = LIMITS.find(([re]) => re.test(pathname))?.[1]
+  if (limited?.(clientIp(req))) throw new HttpError(429, 'Too many requests. Wait a minute and try again.')
 
   if (method === 'POST' && pathname === '/api/events') {
     const ok = recordEvent(await readBody(req, 8192), visit(req))
@@ -148,12 +174,14 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   }
 
   if (method === 'POST' && pathname === '/api/click') {
-    const body = await readJson<{ appId?: unknown; walletId?: unknown; store?: unknown; source?: unknown }>(req, 2048)
+    const body = await readJson<{ appId?: unknown; walletId?: unknown; store?: unknown; source?: unknown; adult?: unknown }>(req, 2048)
     const app = allDocs<MobileApp>('apps').find((a) => a.id === body.appId && a.status === 'live')
     if (!app) throw new HttpError(404, 'That app isn’t listed any more.')
+    if (AGE_GATED.includes(app.category) && body.adult !== true) throw new HttpError(403, 'Confirm you are 18 or older to open this app.')
     const store = body.store === 'ios' || body.store === 'android' ? body.store : null
     const { clickId, reward } = rewards.recordClick(app.id, visit(req), rewards.validWallet(body.walletId) ? body.walletId : null, cleanSource(body.source))
     const dest = (store === 'ios' ? app.appStoreUrl : store === 'android' ? app.playStoreUrl : undefined) ?? app.trackingUrl
+    if (!isWebUrl(dest)) throw new HttpError(409, 'This app’s link isn’t set up correctly yet.')
     return send(res, 200, { clickId, reward, redirect: dest.replaceAll('{click_id}', clickId) })
   }
 
@@ -173,6 +201,16 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     return send(res, 200, { ok: true })
   }
 
+  if (method === 'POST' && pathname === '/api/consent') {
+    const { accept } = await readJson<{ accept?: unknown }>(req, 256)
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    const cookie =
+      accept === true
+        ? `${VISITOR_COOKIE}=${visitorCookie(req) ?? randomBytes(18).toString('base64url')}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure}`
+        : `${VISITOR_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`
+    return send(res, 204, undefined, { 'Set-Cookie': cookie })
+  }
+
   if (method === 'GET' && pathname === '/api/public') {
     const apps = withTrending(allDocs<MobileApp>('apps')).filter((a) => a.status === 'live')
     const clients = allDocs<Client>('clients').map((c) => ({ id: c.id, name: c.name }))
@@ -189,7 +227,36 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     return send(res, 200, picks.map((r) => ({ ...r.app, reason: r.reasons[0], sponsored: r.sponsored })))
   }
 
+  if (method === 'GET' && pathname === '/api/auth/options') return send(res, 200, { google: google.googleEnabled(), domain: google.STAFF_DOMAIN })
+
+  if (method === 'GET' && pathname === '/api/auth/google') {
+    if (!google.googleEnabled()) return send(res, 302, undefined, { Location: '/login?error=not_configured' })
+    const state = randomBytes(24).toString('base64url')
+    const nonce = randomBytes(24).toString('base64url')
+    return send(res, 302, undefined, { Location: google.authUrl(googleRedirect(req), state, nonce), 'Set-Cookie': oauthCookie(`${state}.${nonce}`, 600) })
+  }
+
+  if (method === 'GET' && pathname === '/api/auth/google/callback') {
+    const fail = (why: string) => send(res, 302, undefined, { Location: `/login?error=${why}`, 'Set-Cookie': oauthCookie('', 0) })
+    const [state = '', nonce = ''] = (/(?:^|;\s*)g_oauth=([^;]+)/.exec(req.headers.cookie ?? '')?.[1] ?? '').split('.')
+    const code = url.searchParams.get('code')
+    // The state cookie ties Google's answer to the sign-in this browser started, which blocks login CSRF.
+    if (!state || !nonce || !code || !safeEqual(url.searchParams.get('state') ?? '', state)) return fail(url.searchParams.get('error') === 'access_denied' ? 'cancelled' : 'expired')
+    let claims: Record<string, unknown>
+    try {
+      claims = await google.exchangeCode(code, googleRedirect(req))
+    } catch {
+      return fail('google')
+    }
+    const who = google.checkClaims(claims, nonce)
+    if ('error' in who) return fail(who.error)
+    const { id, user } = auth.staffUser(who.email, who.name)
+    const s = auth.startSession(id, user, false)
+    return send(res, 302, undefined, { Location: '/dashboard', 'Set-Cookie': [auth.sessionCookie(s.token), oauthCookie('', 0)] })
+  }
+
   if (method === 'POST' && pathname === '/api/auth/login') {
+    if (google.googleEnabled()) throw new HttpError(403, 'Use “Continue with Google” with your work account.')
     if (auth.throttled(clientIp(req))) throw new HttpError(429, 'Too many sign-in attempts. Wait 15 minutes and try again.')
     const body = await readJson<{ email?: unknown; password?: unknown; remember?: unknown }>(req, 4096)
     if (typeof body.email !== 'string' || typeof body.password !== 'string') throw new HttpError(400, 'Enter your email and password.')
@@ -219,6 +286,10 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     // shortcut: checks shape only (object with matching id); add per-kind zod schemas before opening writes to clients.
     const doc = await readJson<Doc>(req, 2 * 1024 * 1024) // apps may carry uploaded icons as data URLs
     if (!doc || typeof doc !== 'object' || Array.isArray(doc) || doc.id !== id || id.length > 64) throw new HttpError(400, 'Document id must match the URL.')
+    if (kind === 'apps') {
+      const bad = URL_FIELDS.find((f) => doc[f] !== undefined && doc[f] !== '' && !isWebUrl(doc[f]))
+      if (bad) throw new HttpError(400, `${bad} must be a web address starting with https://`)
+    }
     if (putDoc(kind, doc, url.searchParams.get('create') === '1') === 'exists') throw new HttpError(409, 'That ID is already taken. Try again.')
     return send(res, 200, doc)
   }

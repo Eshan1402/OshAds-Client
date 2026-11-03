@@ -56,11 +56,27 @@ export function login(email: string, password: string, remember: boolean) {
     | undefined
   const ok = verifyPassword(password, row?.password_hash ?? DUMMY_HASH)
   if (!row || !ok) return null
+  return startSession(row.id, JSON.parse(row.data) as User, remember)
+}
+
+export function startSession(userId: string, user: User, remember: boolean) {
   const token = randomBytes(32).toString('base64url')
   const expiresAt = Date.now() + (remember ? SESSION_HOURS_REMEMBERED : SESSION_HOURS) * 3600_000
   sql.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now())
-  sql.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(sha(token), row.id, expiresAt)
-  return { token, expiresAt, remember, user: JSON.parse(row.data) as User }
+  sql.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(sha(token), userId, expiresAt)
+  return { token, expiresAt, remember, user }
+}
+
+/**
+ * The staff account for a Google-verified work email. Someone signing in for the first time gets a read-only
+ * Analyst account; existing accounts keep their role. Google-only accounts have no password, so password login can't open them.
+ */
+export function staffUser(email: string, name: string) {
+  const row = sql.prepare('SELECT id, data FROM users WHERE email = ?').get(email) as { id: string; data: string } | undefined
+  if (row) return { id: row.id, user: JSON.parse(row.data) as User }
+  const user: User = { id: `u_${randomBytes(6).toString('hex')}`, name, email, role: 'analyst', title: 'Analyst', avatarColor: '#14B8A6' }
+  sql.prepare("INSERT INTO users (id, email, data, password_hash) VALUES (?, ?, ?, '')").run(user.id, email, JSON.stringify(user))
+  return { id: user.id, user }
 }
 
 function sessionToken(req: IncomingMessage) {

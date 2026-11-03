@@ -15,12 +15,12 @@ test('passwords are hashed, verified, and never stored as typed', () => {
 
 test('login succeeds only with the right password, and issues a session the server recognises', () => {
   auth.seedUsers()
-  assert.equal(auth.login('priya@oshads.com', 'nope-nope-nope', false), null)
+  assert.equal(auth.login('shobit@oshads.com', 'nope-nope-nope', false), null)
   assert.equal(auth.login('nobody@oshads.com', 'correct-horse-battery', false), null)
-  const s = auth.login('PRIYA@oshads.com', 'correct-horse-battery', true)
+  const s = auth.login('SHOBIT@oshads.com', 'correct-horse-battery', true)
   assert.ok(s)
   const req = { headers: { cookie: `theme=dark; sid=${s.token}` } } as never
-  assert.equal(auth.currentSession(req)?.user.email, 'priya@oshads.com')
+  assert.equal(auth.currentSession(req)?.user.email, 'shobit@oshads.com')
   auth.logout(req)
   assert.equal(auth.currentSession(req), null)
 })

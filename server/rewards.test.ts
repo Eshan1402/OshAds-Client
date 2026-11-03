@@ -79,3 +79,47 @@ test('impression batches are stored one row per app and malformed events are ref
   assert.equal(recordEvent(JSON.stringify({ type: 'impression', appIds: Array(61).fill('x') }), visit), false)
   assert.equal(Number(sql.prepare("SELECT COUNT(*) AS n FROM events WHERE type = 'impression'").get()?.n), 2)
 })
+
+test('a consent cookie keeps the visitor id across days; without it the id is daily', async () => {
+  const { visitOf } = await import('./events')
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile'
+  const a = visitOf('1.2.3.4', ua, null, 'cookie-abcdefghijklmnop')
+  const b = visitOf('9.9.9.9', ua, null, 'cookie-abcdefghijklmnop') // new IP, same cookie
+  assert.equal(a!.visitor, b!.visitor)
+  assert.ok(a!.visitor.startsWith('c'))
+  assert.ok(!visitOf('1.2.3.4', ua, null)!.visitor.startsWith('c'))
+  assert.equal(visitOf('1.2.3.4', 'Googlebot/2.1', null, 'cookie-abcdefghijklmnop'), null) // bots still ignored
+})
+
+test('engagement: returning visitors, time, scroll and what people used', () => {
+  sql.exec('DELETE FROM events;')
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+  const ins = sql.prepare("INSERT INTO events (ts, day, visitor, type, app_id, path, source, label, value) VALUES (?, ?, ?, ?, NULL, '/', 'direct', ?, ?)")
+  const now = Date.now()
+  ins.run(now - 86_400_000, yesterday, 'cAAA', 'page_view', null, null) // came back today
+  ins.run(now, today, 'cAAA', 'page_view', null, null)
+  ins.run(now, today, 'cBBB', 'page_view', null, null) // first visit
+  ins.run(now, today, 'daily1', 'page_view', null, null) // declined cookies: not in the returning maths
+  ins.run(now, today, 'cAAA', 'page_time', null, 30)
+  ins.run(now, today, 'cBBB', 'page_time', null, 90)
+  ins.run(now, today, 'cAAA', 'scroll', null, 40)
+  ins.run(now, today, 'cBBB', 'scroll', null, 80)
+  ins.run(now, today, 'cAAA', 'game_start', 'snake', null)
+  ins.run(now, today, 'cBBB', 'game_start', 'snake', null)
+  ins.run(now, today, 'cBBB', 'search', 'loan', null)
+  const e = analytics.engagement({ from: today, to: today })
+  assert.deepEqual([e.consented, e.returning, e.avgSeconds, e.avgScroll], [2, 1, 60, 60])
+  assert.deepEqual(e.games, [{ label: 'snake', count: 2 }])
+  assert.deepEqual(e.searches, [{ label: 'loan', count: 1 }])
+})
+
+test('engagement events keep only a short label and a sane number', () => {
+  sql.exec('DELETE FROM events;')
+  recordEvent(JSON.stringify({ type: 'search', label: '  ' + 'X'.repeat(200) }), visit)
+  recordEvent(JSON.stringify({ type: 'page_time', value: 1e12 }), visit)
+  recordEvent(JSON.stringify({ type: 'scroll', value: 'lots' }), visit)
+  const rows = sql.prepare('SELECT type, label, value FROM events ORDER BY rowid').all() as Array<{ type: string; label: string | null; value: number | null }>
+  assert.equal(rows[0].label!.length, 60)
+  assert.equal(rows[1].value, 86_400) // capped at a day
+  assert.equal(rows[2].value, null)
+})

@@ -6,10 +6,11 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { sql } from './db'
 
-const TYPES = new Set(['page_view', 'app_view', 'download_click', 'impression'])
+// page_time = seconds the page was visible; scroll = deepest % reached; outbound = website/LinkedIn link clicks.
+const TYPES = new Set(['page_view', 'app_view', 'download_click', 'impression', 'game_start', 'search', 'filter', 'page_time', 'scroll', 'outbound'])
 export const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|curl|wget|python|axios|node-fetch|go-http/i
 
-const insert = sql.prepare('INSERT INTO events (ts, day, visitor, type, app_id, path, source, device, os, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+const insert = sql.prepare('INSERT INTO events (ts, day, visitor, type, app_id, path, source, device, os, country, label, value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
 /** Who sent a request, reduced to what the analytics need. No IP or user agent is stored. */
 export interface Visit {
@@ -23,7 +24,8 @@ export interface Visit {
 let salt = { day: '', value: '' }
 function visitorId(ip: string, ua: string, day: string) {
   if (salt.day !== day) salt = { day, value: randomBytes(16).toString('hex') }
-  return createHash('sha256').update(`${salt.value}|${ip}|${ua}`).digest('hex').slice(0, 16)
+  // "d" for daily ids, "c" for cookie ids (visitOf): the two can never be mistaken for each other.
+  return 'd' + createHash('sha256').update(`${salt.value}|${ip}|${ua}`).digest('hex').slice(0, 15)
 }
 
 export const deviceOf = (ua: string): Visit['device'] =>
@@ -32,10 +34,14 @@ export const deviceOf = (ua: string): Visit['device'] =>
 export const osOf = (ua: string) =>
   /iphone|ipad|ipod/i.test(ua) ? 'iOS' : /android/i.test(ua) ? 'Android' : /windows/i.test(ua) ? 'Windows' : /cros/i.test(ua) ? 'ChromeOS' : /mac os x|macintosh/i.test(ua) ? 'macOS' : /linux/i.test(ua) ? 'Linux' : 'Other'
 
-/** Null for bots and requests without a user agent: they are accepted but never counted. */
-export function visitOf(ip: string, ua: string, country: string | null): Visit | null {
+/**
+ * Null for bots and requests without a user agent: they are accepted but never counted.
+ * With a consent cookie the visitor id is stable across days ("c…"); without one it changes daily.
+ */
+export function visitOf(ip: string, ua: string, country: string | null, cookieId: string | null = null): Visit | null {
   if (!ua || BOT_UA.test(ua)) return null
-  return { visitor: visitorId(ip, ua, new Date().toISOString().slice(0, 10)), device: deviceOf(ua), os: osOf(ua), country }
+  const visitor = cookieId ? 'c' + createHash('sha256').update(cookieId).digest('hex').slice(0, 15) : visitorId(ip, ua, new Date().toISOString().slice(0, 10))
+  return { visitor, device: deviceOf(ua), os: osOf(ua), country }
 }
 
 const str = (v: unknown, max: number) => (typeof v === 'string' && v.length <= max ? v : null)
@@ -57,9 +63,11 @@ export function recordEvent(raw: string, visit: Visit | null) {
   const day = now.toISOString().slice(0, 10)
   const path = str(body.path, 300) ?? '/'
   const source = cleanSource(body.source)
+  const label = typeof body.label === 'string' ? body.label.trim().toLowerCase().slice(0, 60) || null : null
+  const value = typeof body.value === 'number' && Number.isFinite(body.value) ? Math.max(0, Math.min(body.value, 86_400)) : null
   for (const id of appIds) {
     const appId = id == null ? null : str(id, 64)
-    insert.run(now.getTime(), day, visit.visitor, body.type, appId, path, source, visit.device, visit.os, visit.country)
+    insert.run(now.getTime(), day, visit.visitor, body.type, appId, path, source, visit.device, visit.os, visit.country, label, value)
   }
   return true
 }

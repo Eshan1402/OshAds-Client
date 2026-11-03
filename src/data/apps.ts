@@ -8,6 +8,9 @@ const LISTED_ON = '2026-10-21'
 export const REWARD_COINS = 20
 
 const ADULT: CategorySlug[] = ['loans', 'betting', 'trading', 'crypto']
+/** Listings that ask visitors to confirm they're 18+ before showing details or opening the app. */
+export const AGE_GATED: CategorySlug[] = ['betting', 'loans']
+export const AGE_KEY = 'osh:age18'
 // Plain risk lines, shown as part of the listing text — accurate labelling, not an age gate.
 const NOTICE: Partial<Record<CategorySlug, string>> = {
   loans: 'Check eligibility, interest rates, fees and repayment terms on the official website before you apply.',

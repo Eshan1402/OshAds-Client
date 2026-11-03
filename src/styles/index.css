@@ -59,7 +59,38 @@
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
   --animate-marquee: marquee 40s linear infinite;
   --animate-pulse-dot: pulse-dot 2s ease-out infinite;
+  /* game feedback */
+  --animate-pop-in: pop-in 260ms var(--ease-spring) both;
+  --animate-pour-in: pour-in 220ms ease-out both;
+  --animate-burst: burst 320ms ease-out both;
+  --animate-shake: shake 360ms ease-in-out;
+  --animate-fade-up: fade-up 280ms var(--ease-out-expo) both;
+  --animate-tick: tick 300ms var(--ease-out-expo);
+  --animate-float-up: float-up 800ms ease-out both;
 
+  @keyframes pop-in {
+    from { transform: scale(0.4); opacity: 0; }
+  }
+  @keyframes pour-in {
+    from { transform: scaleY(0); }
+  }
+  @keyframes burst {
+    to { transform: scale(1.35); opacity: 0; }
+  }
+  @keyframes tick {
+    from { transform: scale(1.3); color: var(--color-accent); }
+  }
+  @keyframes float-up {
+    15% { opacity: 1; transform: translateY(-6px) scale(1.1); }
+    to { opacity: 0; transform: translateY(-40px); }
+  }
+  @keyframes fade-up {
+    from { transform: translateY(8px); opacity: 0; }
+  }
+  @keyframes shake {
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
   @keyframes shimmer {
     0% { background-position: -400px 0; }
     100% { background-position: 400px 0; }

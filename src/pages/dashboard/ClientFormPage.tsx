@@ -15,7 +15,7 @@ import { PageHeader } from '@/components/layout/DashboardLayout'
 import { ClientLogo } from './ClientsPage'
 
 type Draft = Omit<Client, 'id' | 'since'>
-const blank: Draft = { name: '', company: '', contactName: '', contactEmail: '', industry: '', country: '', logoColors: ['#60A5FA', '#1D4ED8'], status: 'onboarding', tier: 'Growth', accountManagerId: 'u_marcus' }
+const blank: Draft = { name: '', company: '', contactName: '', contactEmail: '', industry: '', country: '', logoColors: ['#60A5FA', '#1D4ED8'], status: 'onboarding', tier: 'Growth', accountManagerId: 'u_priya' }
 const swatches: Array<[string, string]> = [['#60A5FA', '#1D4ED8'], ['#34D399', '#047857'], ['#F472B6', '#9D174D'], ['#A78BFA', '#4C1D95'], ['#FB923C', '#9A3412'], ['#22D3EE', '#164E63'], ['#94A3B8', '#1E293B']]
 
 export default function ClientFormPage() {

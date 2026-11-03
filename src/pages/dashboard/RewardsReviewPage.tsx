@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useQuery } from '@/hooks/useQuery'
+import { Link } from 'react-router-dom'
+import { analyticsService, resolveRange } from '@/services/analyticsService'
 import { appsService } from '@/services/appsService'
 import { queryClient } from '@/services/queryClient'
 import { rewardsService } from '@/services/rewardsService'
@@ -106,6 +108,63 @@ export default function RewardsReviewPage() {
           <p>Each confirmed install counts as a download on the dashboard and adds 20 coins to that visitor’s wallet.</p>
         </CardBody>
       </Card>
+
+      <TrackingStatus />
     </PageTransition>
+  )
+}
+
+/** Which apps can be confirmed automatically, and whether installs are actually coming back (last 7 days). */
+function TrackingStatus() {
+  const apps = useQuery('apps:all', () => appsService.list({ includeHidden: true }))
+  const week = useQuery('analytics:tracking:7d', () => analyticsService.breakdowns(resolveRange('7d')))
+  const rows = (apps.data ?? [])
+    .map((a) => {
+      const s = week.data?.apps[a.id]
+      return { app: a, ready: a.trackingUrl.includes('{click_id}'), clicks: s?.clicks ?? 0, installs: s?.downloads ?? 0 }
+    })
+    .sort((x, y) => Number(y.ready) - Number(x.ready) || y.clicks - x.clicks)
+  const ready = rows.filter((r) => r.ready).length
+  return (
+    <Card className="mt-6 overflow-hidden">
+      <CardHeader
+        title="Install tracking by app"
+        description={apps.data ? `${ready} of ${rows.length} apps pass a click ID to the advertiser. The rest need installs confirmed by hand.` : 'Loading…'}
+        className="pb-4"
+      />
+      {!apps.data || !week.data ? (
+        <div className="p-6"><Skeleton className="h-40" /></div>
+      ) : (
+        <div className="max-h-[420px] overflow-auto border-t border-line">
+          <table className="w-full min-w-[560px] text-[13px]">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-line text-left text-xs text-subtle">
+                <th className="px-5 py-2.5 font-medium">App</th>
+                <th className="px-3 py-2.5 font-medium">Automatic confirmation</th>
+                <th className="px-3 py-2.5 text-right font-medium">Clicks (7 days)</th>
+                <th className="px-5 py-2.5 text-right font-medium">Confirmed installs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.app.id} className="border-b border-line last:border-0">
+                  <td className="px-5 py-2"><span className="flex items-center gap-2 font-medium text-fg"><AppIcon app={r.app} size="xs" />{r.app.name}</span></td>
+                  <td className="px-3 py-2">
+                    {r.ready ? (
+                      <span className="text-success">Ready</span>
+                    ) : (
+                      <Link to={`/dashboard/apps/${r.app.id}/edit`} className="text-accent-text hover:underline">Add tracking link</Link>
+                    )}
+                    {r.ready && r.clicks > 0 && r.installs === 0 && <span className="ml-2 text-warning">· no installs back yet</span>}
+                  </td>
+                  <td className="num px-3 py-2 text-right text-fg">{r.clicks}</td>
+                  <td className="num px-5 py-2 text-right text-fg">{r.installs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   )
 }

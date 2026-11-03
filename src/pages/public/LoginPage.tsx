@@ -1,21 +1,29 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertCircle, ArrowLeft, CheckCircle2, ArrowRight, Eye, EyeOff, Lock, Mail, MailCheck } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import { roleLabels, users } from '@/data/users'
 
-// Dev only: fills the starter accounts' password. Unset in production builds, so the panel disappears.
-const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { authService } from '@/services/authService'
-import { Avatar } from '@/components/ui/Misc'
-import { Button } from '@/components/ui/Button'
+import { Button, buttonClass } from '@/components/ui/Button'
 import { Checkbox, Field, Input } from '@/components/ui/Form'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+/** Google's "G" mark, as Google's sign-in branding asks for. */
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="size-5" aria-hidden>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  )
+}
 
 export default function LoginPage() {
   useDocumentTitle('Manager login')
@@ -34,6 +42,25 @@ export default function LoginPage() {
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  // When the server has Google sign-in set up, that's the only way in; password login is for local development.
+  const [options, setOptions] = useState<{ google: boolean; domain: string } | null>(null)
+  useEffect(() => {
+    fetch('/api/auth/options')
+      .then((r) => r.json())
+      .then(setOptions)
+      .catch(() => setOptions({ google: false, domain: '' }))
+  }, [])
+  const oauthError = new URLSearchParams(location.search).get('error')
+  const shownError =
+    formError ??
+    (oauthError &&
+      ({
+        not_staff: `Use your @${options?.domain ?? 'oshads.com'} Google Workspace account. Personal Gmail accounts can’t sign in.`,
+        cancelled: 'Google sign-in was cancelled.',
+        expired: 'That sign-in took too long or was started in another tab. Try again.',
+        not_configured: 'Google sign-in isn’t set up on the server yet. Sign in with your email and password for now.',
+      }[oauthError] ??
+        'Google couldn’t confirm your sign-in. Try again.'))
 
   if (isAuthenticated) return <Navigate to={from} replace />
 
@@ -91,7 +118,7 @@ export default function LoginPage() {
                   {mode === 'login' ? 'Sign in to manage campaigns, clients and performance.' : 'Enter your work email and we’ll send you a secure reset link.'}
                 </p>
 
-                {signedOut && mode === 'login' && !formError && (
+                {signedOut && mode === 'login' && !shownError && (
                   <div role="status" className="mt-6 flex items-start gap-2.5 rounded-xl border border-success/25 bg-success-soft p-3 text-sm text-success">
                     <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
                     You’ve been signed out securely. Sign in again to continue.
@@ -99,16 +126,31 @@ export default function LoginPage() {
                 )}
 
                 <AnimatePresence>
-                  {formError && (
+                  {shownError && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                       <div role="alert" className="mt-6 flex items-start gap-2.5 rounded-xl border border-danger/25 bg-danger-soft p-3 text-sm text-danger">
                         <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                        {formError}
+                        {shownError}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
+                {options && mode === 'login' && (
+                  <div className="mt-6">
+                    <a href="/api/auth/google" className={buttonClass({ variant: 'outline', size: 'lg', className: 'w-full gap-3' })}>
+                      <GoogleMark /> Continue with Google
+                    </a>
+                    <p className="mt-3 text-center text-xs text-subtle">Only @{options.domain} work accounts can sign in.</p>
+                    {!options.google && (
+                      <div className="mt-6 flex items-center gap-3 text-xs text-subtle" aria-hidden>
+                        <span className="h-px flex-1 bg-line" /> or use your password <span className="h-px flex-1 bg-line" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {options && !options.google && (
                 <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4">
                   <Field label="Work email" error={touched.email ? emailError : undefined} required>
                     {({ id, describedBy, invalid }) => (
@@ -154,34 +196,8 @@ export default function LoginPage() {
                     <Button variant="ghost" className="w-full" onClick={() => setMode('login')} leftIcon={<ArrowLeft className="size-4" />}>Back to sign in</Button>
                   )}
                 </form>
-
-                {mode === 'login' && DEMO_PASSWORD && (
-                  <div className="mt-8 rounded-2xl border border-dashed border-line-strong p-4">
-                    <p className="eyebrow">Demo access</p>
-                    <p className="mt-1 text-xs text-subtle">Pick a role to fill in demo credentials. Each role sees different permissions.</p>
-                    <div className="mt-3 space-y-1.5">
-                      {users.map((u) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => {
-                            setEmail(u.email)
-                            setPassword(DEMO_PASSWORD)
-                            setFormError(null)
-                          }}
-                          className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-surface-2"
-                        >
-                          <Avatar name={u.name} color={u.avatarColor} size="sm" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-fg">{u.name}</span>
-                            <span className="block truncate text-xs text-subtle">{u.title}</span>
-                          </span>
-                          <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold text-muted">{roleLabels[u.role]}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 )}
+
               </motion.div>
             )}
           </AnimatePresence>

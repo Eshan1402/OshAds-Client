@@ -55,7 +55,12 @@ sql.exec(`
 `)
 // Columns added after the first release: add them to existing databases.
 const eventCols = new Set(sql.prepare('PRAGMA table_info(events)').all().map((c) => String(c.name)))
-for (const col of ['device', 'os', 'country']) if (!eventCols.has(col)) sql.exec(`ALTER TABLE events ADD COLUMN ${col} TEXT`)
+for (const col of ['device', 'os', 'country', 'label']) if (!eventCols.has(col)) sql.exec(`ALTER TABLE events ADD COLUMN ${col} TEXT`)
+if (!eventCols.has('value')) sql.exec('ALTER TABLE events ADD COLUMN value REAL')
+// v1: visitor ids gained a kind prefix ("d" daily, "c" cookie). Every id stored before v1 is a daily one.
+if (Number((sql.prepare('PRAGMA user_version').get() as { user_version: number }).user_version) < 1) {
+  sql.exec("UPDATE events SET visitor = 'd' || visitor; UPDATE clicks SET visitor = 'd' || visitor; PRAGMA user_version = 1")
+}
 
 const seed: Record<Kind, Doc[]> = {
   apps: apps as unknown as Doc[],

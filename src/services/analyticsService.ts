@@ -59,6 +59,18 @@ interface Bundle {
   countries: Row[]
   apps: Record<string, { impressions: number; views: number; clicks: number; downloads: number; revenue: number }>
   campaigns: Record<string, { impressions: number; clicks: number; downloads: number; revenue: number; spent: number }>
+  engagement: Engagement | null
+}
+export interface Engagement {
+  /** Visitors who accepted the cookie, and those of them seen on two or more days. */
+  consented: number
+  returning: number
+  avgSeconds: number
+  avgScroll: number
+  games: Array<{ label: string; count: number }>
+  searches: Array<{ label: string; count: number }>
+  filters: Array<{ label: string; count: number }>
+  outbound: Array<{ label: string; count: number }>
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -227,6 +239,10 @@ export const analyticsService = {
   async breakdowns(range: DateRange) {
     const b = await load(range)
     return { apps: b.apps, campaigns: b.campaigns, series: b.series }
+  },
+
+  async engagement(range: DateRange): Promise<Engagement> {
+    return (await load(range)).engagement!
   },
 
   async totals(range: DateRange, scope?: Scope) {

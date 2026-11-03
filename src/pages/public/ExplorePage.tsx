@@ -3,6 +3,7 @@ import { Search, SearchX, SlidersHorizontal, X } from 'lucide-react'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { categories, categoryBySlug } from '@/data/categories'
+import { track } from '@/lib/track'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useQuery } from '@/hooks/useQuery'
@@ -126,7 +127,10 @@ export default function ExplorePage({ fixedCategory }: { fixedCategory?: Categor
           <div className="container-page flex gap-2 overflow-x-auto pb-3 scrollbar-none">
             <CategoryChip active={category === 'all'} onClick={() => update({ category: null })} label="All categories" />
             {categories.map((c) => (
-              <CategoryChip key={c.slug} active={category === c.slug} onClick={() => update({ category: c.slug })} label={c.name} icon={c.icon} colors={c.colors} />
+              <CategoryChip key={c.slug} active={category === c.slug} onClick={() => {
+                  update({ category: c.slug })
+                  track('filter', undefined, { label: c.slug })
+                }} label={c.name} icon={c.icon} colors={c.colors} />
             ))}
           </div>
         )}

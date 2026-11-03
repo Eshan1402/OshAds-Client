@@ -19,10 +19,8 @@ npm run server                      # API, login, traffic counter → http://loc
 npm run dev                         # website → http://localhost:5173 (proxies /api to the server)
 ```
 
-On first start the server creates `server/.data/oshads.db` with the starter catalogue and the three starter
-accounts (admin / manager / analyst from `src/data/users.ts`), all using `SEED_PASSWORD`. To get the login page's
-demo panel in dev, put `VITE_DEMO_PASSWORD=<same password>` in `.env.development.local` (never in `.env.local`,
-which `vite build` also reads).
+On first start the server creates `server/.data/oshads.db` with the starter catalogue and the staff account
+from `src/data/users.ts`, using `SEED_PASSWORD`.
 
 **Production:** `npm run build && npm start` — one Node process serves the built site and the API on `PORT`.
 Put it behind HTTPS (nginx, Caddy or your host's proxy) that keeps the `Host` header and sets `X-Forwarded-For`,

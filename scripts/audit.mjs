@@ -16,8 +16,10 @@ const themes = ['light', 'dark']
 const slug = (r) => (r === '/' ? 'home' : r.replace(/^\//, '').replace(/[/?=]/g, '_'))
 
 async function login(page) {
-  // Demo credentials from the project's seed data (src/data/users.ts) — local dev only.
-  const { DEMO_EMAIL, DEMO_PASS } = { DEMO_EMAIL: 'priya@oshads.com', DEMO_PASS: 'adwin-demo-2026' }
+  // Credentials come from the environment, never the code: AUDIT_EMAIL=… AUDIT_PASSWORD=… node scripts/audit.mjs
+  const DEMO_EMAIL = process.env.AUDIT_EMAIL
+  const DEMO_PASS = process.env.AUDIT_PASSWORD
+  if (!DEMO_EMAIL || !DEMO_PASS) throw new Error('Set AUDIT_EMAIL and AUDIT_PASSWORD to audit the dashboard.')
   await page.goto(`${BASE}/login`)
   await page.locator('input[type=email]').fill(DEMO_EMAIL)
   await page.locator('input[autocomplete=current-password]').fill(DEMO_PASS)

@@ -16,7 +16,7 @@ export const clients: Client[] = brands.map((b) => ({
   status: 'active',
   since: '2026-10-21',
   tier: 'Starter',
-  accountManagerId: 'u_marcus',
+  accountManagerId: 'u_priya',
   website: b.website,
   linkedinUrl: b.linkedin,
   logo: b.logo,

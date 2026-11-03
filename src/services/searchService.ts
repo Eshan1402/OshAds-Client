@@ -1,6 +1,7 @@
 import { categories } from '@/data/categories'
 import { db, request } from './api'
 import { matchesQuery } from './appsService'
+import { track } from '@/lib/track'
 
 const RECENT_KEY = 'adwin:recent-searches'
 
@@ -32,6 +33,7 @@ export const searchService = {
   remember(q: string) {
     const term = q.trim()
     if (!term) return
+    track('search', undefined, { label: term })
     const next = [term, ...searchService.recent().filter((t) => t.toLowerCase() !== term.toLowerCase())].slice(0, 6)
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(next))

@@ -1,6 +1,6 @@
 import { Suspense, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { track } from '@/lib/track'
+import { measurePage, track } from '@/lib/track'
 import { SignOutDialog } from '@/components/auth/SignOut'
 import { SearchOverlay } from '@/components/search/SearchOverlay'
 import { CustomCursor } from '@/components/motion/CustomCursor'
@@ -10,10 +10,15 @@ import { PageLoader } from './PageLoader'
 import { PublicFooter } from './PublicFooter'
 import { PublicNav } from './PublicNav'
 import { ScrollToTop } from './ScrollToTop'
+import { CookieConsent } from './CookieConsent'
 
 export function PublicLayout() {
   const { pathname } = useLocation()
-  useEffect(() => track('page_view'), [pathname]) // public pages only; staff dashboard views are not traffic
+  // Public pages only; staff dashboard views are not traffic.
+  useEffect(() => {
+    track('page_view')
+    return measurePage()
+  }, [pathname])
   return (
     <div className="relative isolate flex min-h-dvh flex-col">
       <AmbientBackdrop />
@@ -29,6 +34,7 @@ export function PublicLayout() {
       <SearchOverlay />
       <SignOutDialog />
       <CustomCursor />
+      <CookieConsent />
     </div>
   )
 }
