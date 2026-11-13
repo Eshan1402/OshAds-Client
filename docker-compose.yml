@@ -1,0 +1,33 @@
+# Runs the app behind Caddy, which gets a free auto-renewing HTTPS cert for discover.osheds.com.
+# Deploy:  SEED_PASSWORD in a .env file next to this, DNS pointing at the Droplet, then: docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - SEED_PASSWORD=${SEED_PASSWORD}
+      - SITE_URL=https://discover.osheds.com
+      - TRUST_PROXY=1
+    volumes:
+      - oshads-data:/app/server/.data
+    expose:
+      - "8788" # internal only; Caddy is the public entry point
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # stores the TLS certificates
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  oshads-data:
+    external: true # reuse the volume from the earlier `docker run` so the account and catalogue carry over
+  caddy-data:
+  caddy-config:
