@@ -1,18 +1,52 @@
-import { AnimatePresence, motion, type Variants } from 'framer-motion'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { cn } from '@/utils/cn'
 
 const GRADIENT = 'linear-gradient(90deg,var(--grad-2) 0%,var(--grad-3) 25%,var(--grad-4) 50%,var(--grad-3) 75%,var(--grad-2) 100%)'
 const GRADIENT_WIDTH = 640 // matches the text-flow keyframes in index.css
+const GLYPHS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz#%&*?<>/'
+const FRAME_MS = 40
+const LOCK_START_MS = 160 // first letter settles after this
+const LOCK_STEP_MS = 70 // each next letter settles this much later
 
-const letter: Variants = {
-  hidden: { y: '0.45em', opacity: 0, filter: 'blur(10px)', rotateX: -70 },
-  show: { y: '0em', opacity: 1, filter: 'blur(0px)', rotateX: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
-  exit: { y: '-0.35em', opacity: 0, filter: 'blur(8px)', transition: { duration: 0.3, ease: [0.4, 0, 1, 1] } },
+/** Random glyphs that lock into `target` left to right; non-letters (spaces, punctuation) stay put. */
+function scramble(target: string, elapsed: number) {
+  return Array.from(target, (ch, i) =>
+    elapsed >= LOCK_START_MS + i * LOCK_STEP_MS || !/[a-z]/i.test(ch) ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+  ).join('')
 }
 
-/** Cycles through words with a letter-by-letter swap, a drawn swash underline and a sparkle. Pauses on hover. */
+/** Shows `target` scrambling into place, plus how far through it is (0..1) for the distortion. */
+function useScramble(target: string, enabled: boolean) {
+  const [text, setText] = useState(enabled ? '' : target)
+  const [progress, setProgress] = useState(enabled ? 0 : 1)
+  useEffect(() => {
+    if (!enabled) {
+      setText(target)
+      setProgress(1)
+      return
+    }
+    const start = performance.now()
+    const done = LOCK_START_MS + target.length * LOCK_STEP_MS
+    const step = () => {
+      const elapsed = performance.now() - start
+      setText(scramble(target, elapsed))
+      setProgress(Math.min(1, elapsed / done))
+      if (elapsed >= done) {
+        setText(target)
+        setProgress(1)
+        clearInterval(t)
+      }
+    }
+    const t = setInterval(step, FRAME_MS)
+    step()
+    return () => clearInterval(t)
+  }, [target, enabled])
+  return { text, progress }
+}
+
+/** Cycles through words: each scrambles into place through a distortion that resolves as it locks. Pauses on hover. */
 export function RotatingWord({ words, interval = 2800, className }: { words: string[]; interval?: number; className?: string }) {
   const reduced = usePrefersReducedMotion()
   const [index, setIndex] = useState(0)
@@ -29,13 +63,13 @@ export function RotatingWord({ words, interval = 2800, className }: { words: str
     <span className={cn('relative inline-grid align-baseline', className)} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {/* Every word laid out invisibly in the same cell, so the width never jumps. */}
       {words.map((w) => (
-        <span key={w} className="invisible col-start-1 row-start-1 whitespace-nowrap" aria-hidden>
+        <span key={w} className="invisible col-start-1 row-start-1 whitespace-nowrap pr-[0.12em]" aria-hidden>
           {w}
         </span>
       ))}
       <span className="relative col-start-1 row-start-1 justify-self-start whitespace-nowrap" aria-hidden>
-        <AnimatePresence mode="popLayout" initial={false}>
-          <FlowingWord key={word} text={word} animate={!reduced} />
+        <AnimatePresence mode="wait" initial={false}>
+          <ScrambleWord key={word} text={word} animate={!reduced} />
         </AnimatePresence>
         <Swash key={`swash-${word}`} animate={!reduced} />
       </span>
@@ -43,52 +77,40 @@ export function RotatingWord({ words, interval = 2800, className }: { words: str
   )
 }
 
-/** Letters share one moving gradient: each letter offsets the background by its own position. */
-function FlowingWord({ text, animate }: { text: string; animate: boolean }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const [offsets, setOffsets] = useState<number[]>([])
-  const chars = Array.from(text)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const measure = () => {
-      const left = el.getBoundingClientRect().left
-      setOffsets(Array.from(el.querySelectorAll<HTMLElement>('[data-ch]')).map((c) => c.offsetLeft || c.getBoundingClientRect().left - left))
-    }
-    measure()
-    document.fonts?.ready.then(measure)
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [text])
+/** One word on a gradient fill, run through an SVG turbulence displacement that fades to zero as it settles. */
+function ScrambleWord({ text, animate }: { text: string; animate: boolean }) {
+  const { text: shown, progress } = useScramble(text, animate)
+  const id = `distort-${text}`
+  const scale = animate ? (1 - progress) * 26 : 0 // px of displacement, gone when locked
+  const freq = 0.015 + (1 - progress) * 0.06
   return (
     <motion.span
-      ref={ref}
-      className={cn('relative inline-block [perspective:600px]', animate && 'animate-text-flow')}
-      initial={animate ? 'hidden' : false}
-      animate="show"
-      exit="exit"
-      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035, delayChildren: 0.12 } }, exit: { transition: { staggerChildren: 0.018 } } }}
+      className={cn('relative inline-block bg-clip-text text-transparent [-webkit-background-clip:text] [padding-right:0.12em]', animate && 'animate-text-flow')}
+      style={{
+        backgroundImage: GRADIENT,
+        backgroundRepeat: 'repeat-x',
+        backgroundSize: `${GRADIENT_WIDTH}px 100%`,
+        backgroundPositionX: 'var(--flow, 0px)',
+        filter: animate && progress < 1 ? `url(#${id})` : undefined,
+      }}
+      initial={animate ? { opacity: 0 } : false}
+      animate={{ opacity: 1 }}
+      exit={animate ? { opacity: 0, filter: 'blur(6px)', transition: { duration: 0.22 } } : undefined}
+      transition={{ duration: 0.18 }}
     >
-      {chars.map((ch, i) => (
-        <motion.span
-          key={i}
-          data-ch
-          variants={animate ? letter : undefined}
-          className="inline-block bg-clip-text text-transparent [-webkit-background-clip:text]"
-          style={{
-            backgroundImage: GRADIENT,
-            backgroundRepeat: 'repeat-x',
-            backgroundSize: `${GRADIENT_WIDTH}px 100%`,
-            backgroundPositionX: `calc(${-(offsets[i] ?? 0)}px + var(--flow, 0px))`,
-            whiteSpace: 'pre',
-          }}
-        >
-          {ch}
-        </motion.span>
-      ))}
+      {shown}
+      {animate && progress < 1 && (
+        <svg width="0" height="0" className="absolute" aria-hidden>
+          <filter id={id} x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency={freq} numOctaves={2} seed={2} result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale={scale} xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
+      )}
     </motion.span>
   )
 }
+
 
 function Swash({ animate }: { animate: boolean }) {
   return (

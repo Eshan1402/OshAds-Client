@@ -119,6 +119,19 @@ export function stats(from: string, to: string) {
  * Real engagement per app: app page opens + 3 × download clicks, this week vs the week before.
  * Apps with no traffic are absent from the map.
  */
+/** Most-read blog posts in the last 7 days, by distinct visitors. Paths come from visitors, so the page keeps only real slugs. */
+export function blogTrending(now = new Date()) {
+  const since = new Date(now.getTime() - 6 * 86_400_000).toISOString().slice(0, 10)
+  return sql
+    .prepare(
+      `SELECT substr(path, 7) AS slug, COUNT(DISTINCT visitor) AS readers FROM events
+       WHERE type = 'page_view' AND path LIKE '/blog/_%' AND day >= ?
+       GROUP BY path ORDER BY readers DESC, MAX(ts) DESC LIMIT 20`,
+    )
+    .all(since)
+    .map((r) => ({ slug: String(r.slug), readers: n(r.readers) }))
+}
+
 export function appTrends(now = new Date()) {
   const day = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString().slice(0, 10)
   const weekStart = day(6)

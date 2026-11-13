@@ -5,6 +5,7 @@ import { SignOutDialog } from '@/components/auth/SignOut'
 import { SearchOverlay } from '@/components/search/SearchOverlay'
 import { CustomCursor } from '@/components/motion/CustomCursor'
 import { AmbientBackdrop } from './AmbientBackdrop'
+import { ScrollGraphics } from '@/components/motion/ScrollGraphics'
 import { ScrollProgress } from '@/components/motion/ScrollProgress'
 import { PageLoader } from './PageLoader'
 import { PublicFooter } from './PublicFooter'
@@ -22,6 +23,7 @@ export function PublicLayout() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col">
       <AmbientBackdrop />
+      <ScrollGraphics />
       <ScrollProgress />
       <ScrollToTop />
       <PublicNav />

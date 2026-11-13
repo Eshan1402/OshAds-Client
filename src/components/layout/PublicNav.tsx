@@ -17,6 +17,7 @@ const links = [
   { to: '/explore', label: 'Explore' },
   { to: '/trending', label: 'Trending' },
   { to: '/categories', label: 'Categories' },
+  { to: '/blog', label: 'Blog' },
   { to: '/rewards', label: 'Rewards' },
   { to: '/about', label: 'About' },
 ]

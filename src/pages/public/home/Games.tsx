@@ -1,4 +1,4 @@
-import { Blocks, Brain, CircleDot, FlaskConical, Search, Worm } from 'lucide-react'
+import { Blocks, Brain, CircleDot, FlaskConical, Search, Wheat, Worm } from 'lucide-react'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { cn } from '@/utils/cn'
@@ -13,6 +13,7 @@ const GAMES: Array<{ id: string; name: string; blurb: string; icon: ReactNode; C
   { id: 'blocks', name: 'Block Puzzle', blurb: 'Fill rows, clear lines', icon: <Blocks />, Comp: lazy(() => import('@/components/games/BlockPuzzle')) },
   { id: 'bubbles', name: 'Bubble Shooter', blurb: 'Match three to pop', icon: <CircleDot />, Comp: lazy(() => import('@/components/games/BubbleShooter')) },
   { id: 'snake', name: 'Snake', blurb: 'Eat, grow, don’t crash', icon: <Worm />, Comp: lazy(() => import('@/components/games/Snake')) },
+  { id: 'farm', name: 'Farm Stand', blurb: 'Pick, sell and grow your farm', icon: <Wheat />, Comp: lazy(() => import('@/components/games/FarmStand')) },
   { id: 'memory', name: 'Memory Match', blurb: 'Pair the app logos', icon: <Brain />, Comp: lazy(() => import('@/components/games/MemoryMatch')) },
 ]
 
@@ -22,7 +23,7 @@ export function GamesSection() {
   const [played, setPlayed] = useState(false) // nothing loads until the visitor picks or starts a game
 
   return (
-    <section className="container-page py-20 sm:py-24" aria-labelledby="games-title">
+    <section id="games" className="container-page py-20 sm:py-24" aria-labelledby="games-title">
       <div className="mb-10 max-w-2xl">
         <Eyebrow>Take a break</Eyebrow>
         <SplitReveal
@@ -30,7 +31,7 @@ export function GamesSection() {
           className="font-display text-4xl font-semibold leading-[1.04] tracking-[-0.04em] text-fg sm:text-[52px]"
           lines={['Play a quick', { text: 'game.', className: 'font-serif font-normal italic text-gradient-brand' }]}
         />
-        <p className="mt-3 text-muted">Six quick games, free, no sign-up. Your best scores are saved in this browser.</p>
+        <p className="mt-3 text-muted">Seven quick games, free, no sign-up. Your best scores are saved in this browser.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">

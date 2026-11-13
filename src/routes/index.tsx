@@ -13,6 +13,8 @@ const CategoriesPage = lazy(() => import('@/pages/public/CategoriesPage'))
 const AppDetailPage = lazy(() => import('@/pages/public/AppDetailPage'))
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
+const BlogPage = lazy(() => import('@/pages/public/BlogPage'))
+const BlogPostPage = lazy(() => import('@/pages/public/BlogPostPage'))
 const RewardsPage = lazy(() => import('@/pages/public/RewardsPage'))
 const LoginPage = lazy(() => import('@/pages/public/LoginPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
@@ -47,6 +49,8 @@ export const router = createBrowserRouter([
       { path: '/categories/:slug', element: <CategoriesPage /> },
       { path: '/app/:slug', element: <AppDetailPage /> },
       { path: '/search', element: <SearchPage /> },
+      { path: '/blog', element: <BlogPage /> },
+      { path: '/blog/:slug', element: <BlogPostPage /> },
       { path: '/about', element: <AboutPage /> },
       { path: '/rewards', element: <RewardsPage /> },
       { path: '*', element: <NotFoundPage /> },

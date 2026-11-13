@@ -2,14 +2,16 @@
 import { writeFileSync } from 'node:fs'
 import { apps } from '../src/data/apps'
 import { categories } from '../src/data/categories'
+import { posts } from '../src/data/posts'
 
 // shortcut: reads the seed catalogue; once the API is live, fetch live apps from it instead.
 const SITE = (process.env.SITE_URL ?? 'https://oshads.com').replace(/\/$/, '')
 const today = new Date().toISOString().slice(0, 10)
 
 const urls = [
-  ...['/', '/explore', '/trending', '/categories', '/about'].map((p) => ({ loc: p, lastmod: today })),
+  ...['/', '/explore', '/trending', '/categories', '/blog', '/about'].map((p) => ({ loc: p, lastmod: today })),
   ...categories.map((c) => ({ loc: `/categories/${c.slug}`, lastmod: today })),
+  ...posts.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date })),
   ...apps.filter((a) => a.status === 'live').map((a) => ({ loc: `/app/${a.slug}`, lastmod: a.updatedAt.slice(0, 10) })),
 ]
 

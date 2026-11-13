@@ -5,7 +5,7 @@ process.env.DB_PATH = ':memory:'
 const { sql } = await import('./db')
 const rewards = await import('./rewards')
 const analytics = await import('./analytics')
-const { recordEvent } = await import('./events')
+const { blogTrending, recordEvent } = await import('./events')
 
 const visit = { visitor: 'v1', device: 'mobile' as const, os: 'Android', country: 'IN' }
 const wallet = '11111111-2222-4333-8444-555555555555'
@@ -122,4 +122,15 @@ test('engagement events keep only a short label and a sane number', () => {
   assert.equal(rows[0].label!.length, 60)
   assert.equal(rows[1].value, 86_400) // capped at a day
   assert.equal(rows[2].value, null)
+})
+
+test('blog trending ranks posts by distinct readers in the last 7 days', () => {
+  sql.exec('DELETE FROM events;')
+  const old = new Date(Date.now() - 8 * 86_400_000).toISOString().slice(0, 10)
+  const ins = sql.prepare("INSERT INTO events (ts, day, visitor, type, path, source) VALUES (?, ?, ?, 'page_view', ?, 'direct')")
+  for (const v of ['a', 'b']) ins.run(Date.now(), today, v, '/blog/popular')
+  for (let i = 0; i < 5; i++) ins.run(Date.now(), today, 'a', '/blog/one-keen-reader') // the same person refreshing counts once
+  ins.run(Date.now(), old, 'c', '/blog/last-month')
+  ins.run(Date.now(), today, 'c', '/blog') // the index page isn't a post
+  assert.deepEqual(blogTrending(), [{ slug: 'popular', readers: 2 }, { slug: 'one-keen-reader', readers: 1 }])
 })

@@ -30,7 +30,7 @@ import * as auth from './auth'
 import * as google from './google'
 import { allDocs, KINDS, putDoc, seedDocs, type Doc, type Kind } from './db'
 import { bundle, campaignStats, liveVisitors } from './analytics'
-import { appTrends, cleanSource, recordEvent, stats, visitOf } from './events'
+import { appTrends, blogTrending, cleanSource, recordEvent, stats, visitOf } from './events'
 import * as rewards from './rewards'
 import { limiter } from './limit'
 
@@ -216,6 +216,8 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     const clients = allDocs<Client>('clients').map((c) => ({ id: c.id, name: c.name }))
     return send(res, 200, { apps, clients })
   }
+
+  if (method === 'GET' && pathname === '/api/blog/trending') return send(res, 200, blogTrending())
 
   if (method === 'GET' && pathname === '/api/recommendations') {
     const p = url.searchParams

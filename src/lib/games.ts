@@ -167,3 +167,156 @@ export function floating(grid: number[][]) {
   grid[0].forEach((v, c) => v >= 0 && cluster(grid, 0, c, false).forEach(([r, k]) => held.add(`${r},${k}`)))
   return grid.flatMap((row, r) => row.flatMap((v, c) => (v >= 0 && !held.has(`${r},${c}`) ? [[r, c]] : [])))
 }
+
+/* ── Farm Stand: steer a farmer around a small field. Nothing is tapped: picking, stocking, selling and buying happen by standing close. ── */
+
+export const FARM_W = 360
+export const FARM_H = 480
+export type Crop = 'tomato' | 'wheat'
+export const CROP_PRICE: Record<Crop, number> = { tomato: 5, wheat: 9 }
+/** Where to stand: behind the stall to stock it, on the mat to pick up takings. Customers queue in front. */
+export const SPOT = { stall: { x: 180, y: 262 }, till: { x: 300, y: 300 }, queue: [{ x: 140, y: 350 }, { x: 180, y: 350 }, { x: 220, y: 350 }] }
+/** Purchase pads: stand on one and coins drain into it; each entry in `costs` is one level. */
+export const PADS = {
+  wheat: { x: 290, y: 190, costs: [60], label: 'Wheat field' },
+  basket: { x: 48, y: 230, costs: [80, 160, 320], label: 'Bigger basket' },
+  shoes: { x: 48, y: 330, costs: [120, 240], label: 'Faster shoes' },
+  helper: { x: 300, y: 400, costs: [150, 400], label: 'Hire helper' },
+}
+export type FarmPad = keyof typeof PADS
+export const SHELF_CAP = 12
+export const GROW_S = 5
+const HELPER_CAP = 3
+
+/** The part worth keeping between visits. */
+export type FarmSave = { coins: number; till: number; sold: number; level: Record<FarmPad, number>; paid: Record<FarmPad, number> }
+/** Anyone who carries crops: the farmer and the hired helpers. */
+export type Worker = {
+  x: number
+  y: number
+  carry: Crop[]
+  act: number // pause between two picks or two drops, so the stack builds one by one
+  face: 1 | -1
+  moving: boolean
+}
+export type Farm = FarmSave &
+  Worker & {
+    plants: Array<{ x: number; y: number; crop: Crop; wait: number }> // wait: seconds until ripe
+    shelf: Crop[]
+    buyers: Array<{ x: number; y: number; slot: number; look: number; want: number; got: number; owe: number; cool: number; leaving: boolean }>
+    helpers: Worker[]
+    nextBuyer: number
+  }
+export const carryCap = (f: Farm) => 4 + 3 * f.level.basket
+
+const worker = (x: number, y: number): Worker => ({ x, y, carry: [], act: 0, face: 1, moving: false })
+
+export function newFarm(save?: Partial<FarmSave> | null): Farm {
+  const plot = (crop: Crop, x0: number) => Array.from({ length: 9 }, (_, i) => ({ crop, x: x0 + (i % 3) * 32, y: 62 + Math.floor(i / 3) * 32, wait: 0 }))
+  // Spread over the defaults so a save from before a pad existed still loads.
+  const level = { wheat: 0, basket: 0, shoes: 0, helper: 0, ...save?.level }
+  return {
+    coins: save?.coins ?? 0,
+    till: save?.till ?? 0,
+    sold: save?.sold ?? 0,
+    level,
+    paid: { wheat: 0, basket: 0, shoes: 0, helper: 0, ...save?.paid },
+    ...worker(180, 200),
+    plants: [...plot('tomato', 38), ...plot('wheat', 258)],
+    shelf: [],
+    buyers: [],
+    helpers: Array.from({ length: level.helper }, (_, i) => worker(150 + i * 60, 170)),
+    nextBuyer: 1,
+  }
+}
+
+type At = { x: number; y: number }
+const dist = (a: At, b: At) => Math.hypot(a.x - b.x, a.y - b.y)
+const near = (a: At, b: At, r: number) => dist(a, b) < r
+
+function walk(w: Worker, dx: number, dy: number, speed: number, dt: number) {
+  const len = Math.hypot(dx, dy)
+  w.moving = len > 0.01
+  if (!w.moving) return
+  const v = (speed * dt) / Math.max(1, len)
+  w.x = Math.min(FARM_W - 14, Math.max(14, w.x + dx * v))
+  w.y = Math.min(FARM_H - 14, Math.max(24, w.y + dy * v))
+  if (Math.abs(dx) > 0.01) w.face = dx > 0 ? 1 : -1
+}
+
+/** A worker's hands: pick a ripe crop within reach, otherwise unload at the stall. */
+function work(f: Farm, w: Worker, cap: number, dt: number) {
+  w.act -= dt
+  if (w.act > 0) return
+  const ripe = w.carry.length < cap && f.plants.find((p) => !p.wait && (p.crop === 'tomato' || f.level.wheat) && near(w, p, 30))
+  if (ripe) {
+    w.carry.push(ripe.crop)
+    ripe.wait = GROW_S
+    w.act = 0.12
+  } else if (w.carry.length && f.shelf.length < SHELF_CAP && near(w, SPOT.stall, 46)) {
+    f.shelf.push(w.carry.pop()!)
+    w.act = 0.1
+  }
+}
+
+/** Advances the farm by `dt` seconds, in place. (dx, dy) is the joystick, each from -1 to 1. */
+export function stepFarm(f: Farm, dx: number, dy: number, dt: number, rnd: Rnd = Math.random) {
+  for (const p of f.plants) p.wait = Math.max(0, p.wait - dt)
+  walk(f, dx, dy, 110 + 35 * f.level.shoes, dt)
+  work(f, f, carryCap(f), dt)
+
+  // Helpers do the round on their own: to the nearest ripe crop until their arms are full, then to the stall.
+  f.helpers.forEach((h, i) => {
+    const ripe = f.plants.filter((p) => !p.wait && (p.crop === 'tomato' || f.level.wheat)).sort((a, b) => dist(h, a) - dist(h, b))[0]
+    const unload = h.carry.length >= HELPER_CAP || (h.carry.length > 0 && !ripe)
+    const to = unload ? { x: SPOT.stall.x + (i ? 34 : -34), y: SPOT.stall.y } : (ripe ?? { x: 150 + i * 60, y: 170 })
+    const d = dist(h, to)
+    walk(h, d > 4 ? (to.x - h.x) / d : 0, d > 4 ? (to.y - h.y) / d : 0, 85, dt)
+    work(f, h, HELPER_CAP, dt)
+  })
+
+  if (f.till && near(f, SPOT.till, 34)) {
+    const take = Math.min(f.till, Math.ceil(f.till * dt * 8))
+    f.till -= take
+    f.coins += take
+  }
+
+  for (const id of Object.keys(PADS) as FarmPad[]) {
+    const cost = PADS[id].costs[f.level[id]]
+    if (cost === undefined || !f.coins || !near(f, PADS[id], 26)) continue
+    const pay = Math.min(f.coins, cost - f.paid[id], Math.ceil(cost * dt * 1.5))
+    f.coins -= pay
+    f.paid[id] += pay
+    if (f.paid[id] < cost) continue
+    f.level[id]++
+    f.paid[id] = 0
+    if (id === 'helper') f.helpers.push(worker(PADS.helper.x, PADS.helper.y - 34))
+  }
+
+  f.nextBuyer -= dt
+  const slot = SPOT.queue.findIndex((_, i) => !f.buyers.some((b) => b.slot === i && !b.leaving))
+  if (f.nextBuyer <= 0 && slot >= 0) {
+    f.buyers.push({ x: SPOT.queue[slot].x, y: FARM_H + 20, slot, look: Math.floor(rnd() * 997), want: 1 + Math.floor(rnd() * 3), got: 0, owe: 0, cool: 0, leaving: false })
+    f.nextBuyer = 2 + rnd() * 3
+  }
+  for (const b of f.buyers) {
+    const goal = b.leaving ? FARM_H + 40 : SPOT.queue[b.slot].y
+    if (Math.abs(goal - b.y) > 70 * dt) {
+      b.y += Math.sign(goal - b.y) * 70 * dt
+      continue
+    }
+    b.y = goal
+    b.cool -= dt
+    if (b.leaving || b.cool > 0 || !f.shelf.length) continue
+    b.owe += CROP_PRICE[f.shelf.shift()!]
+    b.cool = 0.35
+    if (++b.got >= b.want) {
+      // Paid in full: the money lands on the mat and the customer walks off beside the queue.
+      f.till += b.owe
+      f.sold += b.got
+      b.leaving = true
+      b.x += 16
+    }
+  }
+  f.buyers = f.buyers.filter((b) => !(b.leaving && b.y >= FARM_H + 40))
+}

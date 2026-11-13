@@ -20,7 +20,7 @@ export function PublicFooter() {
             Some listings are sponsored campaigns. Every app is reviewed before it’s featured, and ratings shown are from the public app stores.
           </p>
         </div>
-        <FooterCol title="Discover" links={[['/explore', 'Explore apps'], ['/trending', 'Trending now'], ['/categories', 'All categories'], ['/search', 'Search']]} />
+        <FooterCol title="Discover" links={[['/explore', 'Explore apps'], ['/trending', 'Trending now'], ['/categories', 'All categories'], ['/blog', 'Blog'], ['/search', 'Search']]} />
         <FooterCol title="Categories" links={categories.slice(0, 5).map((c) => [`/categories/${c.slug}`, c.name])} />
         <FooterCol title="Company" links={[['/about', 'About OshAds'], ['/about#advertisers', 'For app publishers'], ['/about#trust', 'How we review apps'], ['/login', 'Manager login']]} />
       </div>

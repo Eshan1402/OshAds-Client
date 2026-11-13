@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canPour, cluster, dealTubes, fit, floating, lineCells, placeBlock, placeWords, pour, SHAPES, sortedTubes, stepSnake, TUBE } from './games'
+import { canPour, cluster, dealTubes, fit, floating, lineCells, placeBlock, placeWords, pour, SHAPES, sortedTubes, stepSnake, TUBE, newFarm, PADS, SPOT, stepFarm } from './games'
 
 test('word search hides every word readably along a straight line, and only straight drags select', () => {
   const { grid, placed } = placeWords(['APPLE', 'MANGO', 'PEAR', 'KIWI', 'LEMON', 'GRAPE'], 10)
@@ -50,4 +50,45 @@ test('bubbles pop as same-colour clusters and unattached bubbles fall', () => {
   assert.equal(cluster(grid, 0, 0, true).length, 3) // (0,0) (0,1) (1,0)
   assert.deepEqual(floating([[-1, -1, 1], [-1, 2], [-1, 2, -1]]), []) // still hangs from (0,2)
   assert.deepEqual(floating([[-1, -1, 1], [2, -1], [2, -1, -1]]).sort(), [[1, 0], [2, 0]])
+})
+
+test('farm stand: standing by things picks, stocks, sells, collects the takings and buys', () => {
+  const f = newFarm()
+  const stand = (at: { x: number; y: number }, seconds: number) => {
+    Object.assign(f, { x: at.x, y: at.y })
+    for (let t = 0; t < seconds; t += 0.05) stepFarm(f, 0, 0, 0.05, () => 0) // rnd 0: every customer wants one item
+  }
+  stepFarm(f, 1, 0, 1, () => 0)
+  assert.equal(f.x, 290) // 110 px/s to the right
+
+  stand({ x: 54, y: 78 }, 10) // between four tomato plants
+  assert.deepEqual(f.carry, ['tomato', 'tomato', 'tomato', 'tomato']) // stops at a full basket
+  stand({ x: 274, y: 78 }, 3) // the wheat field is still locked
+  assert.equal(f.carry.includes('wheat'), false)
+
+  stand(SPOT.stall, 30)
+  assert.deepEqual([f.carry.length, f.shelf.length, f.sold, f.till, f.coins], [0, 0, 4, 20, 0])
+  stand(SPOT.till, 2)
+  assert.deepEqual([f.till, f.coins], [0, 20])
+
+  stand(PADS.wheat, 3) // 20 coins isn't enough: it's kept in the pad
+  assert.deepEqual([f.coins, f.paid.wheat, f.level.wheat], [0, 20, 0])
+  f.coins = 40
+  stand(PADS.wheat, 3)
+  assert.deepEqual([f.coins, f.level.wheat], [0, 1])
+  stand({ x: 274, y: 78 }, 3)
+  assert.deepEqual(f.carry, ['wheat', 'wheat', 'wheat', 'wheat'])
+
+  f.coins = 150
+  stand(PADS.helper, 3)
+  assert.deepEqual([f.coins, f.helpers.length], [0, 1])
+})
+
+test('farm stand: a hired helper picks and stocks the stall while the farmer stands still', () => {
+  const f = newFarm({ level: { wheat: 0, basket: 0, shoes: 0, helper: 1 } })
+  for (let t = 0; t < 40; t += 0.05) stepFarm(f, 0, 0, 0.05, () => 0)
+  assert.equal(f.carry.length, 0) // the farmer did nothing
+  assert.ok(f.sold >= 3, `helper sold ${f.sold}`)
+  assert.equal(f.till, f.sold * 5)
+  assert.ok(f.helpers[0].carry.length <= 3)
 })

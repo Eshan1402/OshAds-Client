@@ -1,322 +1,249 @@
-import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, ArrowUpRight, Coins, Gift, ShieldCheck, Sparkles, Store } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { InteractiveHeadline } from '@/components/motion/InteractiveHeadline'
-import { Magnetic } from '@/components/motion/Magnetic'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { ArrowRight, ArrowUpRight, Coins, Compass, Gamepad2, Search, ShieldCheck, Store, UserRoundX } from 'lucide-react'
+import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { RotatingWord } from '@/components/motion/RotatingWord'
 import { apps, REWARD_COINS } from '@/data/apps'
-import { categories, categoryBySlug } from '@/data/categories'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { categories } from '@/data/categories'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
-import { useQuery } from '@/hooks/useQuery'
-import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
-import { appsService } from '@/services/appsService'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
-import { AppIcon } from '@/components/ui/AppIcon'
-import { ButtonLink } from '@/components/ui/Button'
-import { Skeleton } from '@/components/ui/Feedback'
-import type { CategorySlug } from '@/types'
+import { LogoMark } from '@/components/ui/Logo'
+import { cn } from '@/utils/cn'
 
-const rewardCount = apps.filter((a) => a.reward && a.status === 'live').length
-const liveCount = apps.filter((a) => a.status === 'live').length
-// Only figures the catalogue can back up.
-const stats = [
-  { value: liveCount, suffix: '', label: 'Listed apps' },
-  { value: categories.length, suffix: '', label: 'Categories' },
-  { value: rewardCount, suffix: '', label: 'Install rewards live' },
-  { value: REWARD_COINS, suffix: '', label: 'Osh coins per install' },
+const live = apps.filter((a) => a.status === 'live')
+const rewardCount = live.filter((a) => a.reward).length
+const withLogo = live.filter((a) => a.iconImage)
+// Two rings of real listings circling the logo: radius (% of the stage), seconds per lap, which apps.
+const RINGS = [
+  { r: 27, lap: 44, apps: withLogo.slice(0, 4) },
+  { r: 46, lap: 70, apps: withLogo.slice(4, 11) },
 ]
+const ease = [0.16, 1, 0.3, 1] as const
+const toGames = (e: MouseEvent) => {
+  e.preventDefault()
+  document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })
+}
 
 export function Hero() {
   const reduced = usePrefersReducedMotion()
-  const ease = [0.16, 1, 0.3, 1] as const
+  const navigate = useNavigate()
+  const [q, setQ] = useState('')
+  // Leaving the hero: the words lift and fade while the orbit grows and turns, so the scroll feels like flying past it.
   const section = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end start'] })
-  const textY = useTransform(scrollYProgress, [0, 1], [0, -140])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0])
-  const statsY = useTransform(scrollYProgress, [0, 1], [0, -40])
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -110])
+  const textOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0])
+  const orbitScale = useTransform(scrollYProgress, [0, 1], [1, 1.25])
+  const orbitTurn = useTransform(scrollYProgress, [0, 1], [0, 50])
+  const rise = (delay: number) => ({
+    initial: reduced ? false : ({ opacity: 0, y: 18, filter: 'blur(10px)' } as const),
+    animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+    transition: { duration: 0.8, delay, ease },
+  })
+  // Headline lines slide up from behind a mask, one after another; the little picture pops in after its words.
+  const line = (i: number, words: ReactNode, picture: ReactNode) => (
+    <span className="-mb-[0.14em] block overflow-hidden pb-[0.14em] pt-[0.06em]">
+      <motion.span className="flex items-center gap-[0.24em] whitespace-nowrap" initial={reduced ? false : { y: '115%' }} animate={{ y: 0 }} transition={{ duration: 1, delay: 0.1 + i * 0.11, ease }}>
+        {words}
+        <motion.span className="shrink-0" initial={reduced ? false : { scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.75 + i * 0.12 }}>
+          {picture}
+        </motion.span>
+      </motion.span>
+    </span>
+  )
 
   return (
     <section ref={section} className="relative overflow-hidden" aria-labelledby="hero-title">
-      {/* Atmosphere — drawn from the logo's violet, coral and amber */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 grid-bg opacity-70 [mask-image:radial-gradient(65%_55%_at_65%_30%,black,transparent)]" />
-        <div className="absolute -top-48 right-[-8%] size-[620px] rounded-full bg-[radial-gradient(circle,rgb(123_75_234/0.20),transparent_65%)] blur-2xl" />
-        <div className="absolute right-[18%] top-[30%] size-[460px] rounded-full bg-[radial-gradient(circle,rgb(242_86_104/0.16),transparent_65%)] blur-2xl" />
-        <div className="absolute -left-48 top-24 size-[520px] rounded-full bg-[radial-gradient(circle,rgb(246_164_67/0.10),transparent_65%)] blur-2xl" />
-        <Particles />
+        <div className="absolute inset-0 grid-bg opacity-60 [mask-image:radial-gradient(70%_60%_at_60%_35%,black,transparent)]" />
+        <div className="absolute -left-40 -top-40 size-[560px] animate-float rounded-full bg-[radial-gradient(circle,rgb(47_107_255/0.20),transparent_65%)] blur-2xl [animation-duration:16s]" />
+        <div className="absolute right-[-10%] top-[8%] size-[680px] animate-float rounded-full bg-[radial-gradient(circle,rgb(27_63_208/0.26),transparent_62%)] blur-2xl [animation-delay:-6s] [animation-duration:20s]" />
+        <div className="absolute bottom-[-30%] left-[30%] size-[520px] rounded-full bg-[radial-gradient(circle,rgb(124_196_255/0.10),transparent_65%)] blur-2xl" />
       </div>
 
-      <div className="container-page relative mx-auto grid max-w-[1180px] items-center gap-12 pb-16 pt-16 sm:pt-24 lg:grid-cols-2 lg:gap-16 lg:pb-24 lg:pt-28 xl:gap-20">
-        <motion.div style={reduced ? undefined : { y: textY, opacity: textOpacity }} className="relative z-10 flex min-w-0 flex-col items-start text-left">
+      <div className="container-page relative mx-auto grid max-w-[1200px] items-center gap-10 pb-10 pt-12 sm:pt-16 lg:grid-cols-[1.08fr_0.92fr] lg:gap-6 lg:pb-14 lg:pt-20">
+        <motion.div style={reduced ? undefined : { y: textY, opacity: textOpacity }} className="relative z-10 min-w-0">
           <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease }}
-            className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-subtle"
+            initial={reduced ? false : { opacity: 0, y: 12, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.7, ease }}
+            className="mb-5 inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"
           >
-            <span className="hidden h-px w-8 bg-gradient-to-r from-[#1B3FD0] to-[#3D7BFF] sm:block" aria-hidden />
-            The OshAds edit · Curated app discovery
+            <span className="relative flex size-2" aria-hidden>
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent/60" />
+              <span className="relative inline-flex size-2 rounded-full bg-accent" />
+            </span>
+            Driven by results · App discovery &amp; install campaigns
+          </motion.p>
+          <h1 id="hero-title" aria-label="Discover apps. Play games. Earn rewards." className="font-hero text-[36px] font-bold leading-[1.04] tracking-[-0.045em] text-fg sm:text-[64px] lg:text-[60px] xl:text-[70px]">
+            <span aria-hidden>
+              {line(
+                0,
+                'Discover apps.',
+                <span className="flex -space-x-[0.2em]">
+                  {withLogo.slice(11, 14).map((a, i) => (
+                    <img key={a.id} src={a.iconImage} alt="" className="size-[0.74em] rounded-[0.2em] bg-white object-cover shadow-lg ring-[0.04em] ring-bg" style={{ rotate: `${(i - 1) * 7}deg` }} />
+                  ))}
+                </span>,
+              )}
+              {line(
+                1,
+                'Play games.',
+                <span className="grid size-[0.78em] rotate-6 place-items-center rounded-[0.22em] bg-[linear-gradient(135deg,#7C3AED,#2F6BFF)] text-white shadow-[0_0.12em_0.4em_-0.08em_rgb(124_58_237/0.8)]">
+                  <Gamepad2 className="size-[0.5em]" strokeWidth={2.2} />
+                </span>,
+              )}
+              {line(
+                2,
+                <span>
+                  Earn{' '}
+                  <span className="font-accent text-[1.12em] font-normal italic tracking-[-0.02em]">
+                    <RotatingWord words={['rewards.', 'coins.', 'perks.']} />
+                  </span>
+                </span>,
+                <span className="grid size-[0.72em] animate-float place-items-center rounded-full bg-[linear-gradient(145deg,#FDE68A,#F59E0B_55%,#B45309)] text-[#78350F] shadow-[0_0.12em_0.4em_-0.08em_rgb(245_158_11/0.9),inset_0_0.03em_0_rgb(255_255_255/0.7)] [animation-duration:5s]">
+                  <Coins className="size-[0.42em]" strokeWidth={2.4} />
+                </span>,
+              )}
+            </span>
+          </h1>
+
+          <motion.p {...rise(0.45)} className="mt-6 max-w-[34rem] text-base leading-[1.65] text-muted sm:text-lg">
+            OshAds is a free guide to apps. We explain each one <span className="text-fg">in plain words</span>, send you to its <span className="text-fg">official store</span>, and give you{' '}
+            <span className="text-fg">{REWARD_COINS} Osh coins</span> for installing the ones marked with a reward.
           </motion.p>
 
-          <InteractiveHeadline
-            label="Apps worth your attention."
-            words={['Apps', 'worth']}
-            className="mt-7 font-display text-[46px] font-semibold leading-[1.02] tracking-[-0.045em] text-fg sm:text-[72px] lg:text-[76px] xl:text-[88px]"
-            accent={
-              <span className="font-serif text-[1.12em] font-normal italic leading-[1.05] tracking-[-0.02em]">
-                <span className="text-gradient-brand">your&nbsp;</span>
-                <RotatingWord words={['attention.', 'time.', 'curiosity.', 'thumbs.']} />
-              </span>
-            }
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.14, ease }}
-            className="mt-8 max-w-[36rem] text-[17px] leading-[1.65] text-muted sm:text-lg"
+          <motion.form
+            {...rise(0.55)}
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault()
+              navigate(q.trim() ? `/search?q=${encodeURIComponent(q.trim())}` : '/search')
+            }}
+            className="mt-8 flex h-14 w-full max-w-[520px] items-center gap-2 rounded-full glass-strong pl-5 pr-1.5 shadow-[0_24px_60px_-28px_rgb(47_107_255/0.8)] transition focus-within:ring-2 focus-within:ring-accent"
           >
-            Skip the endless store scroll. Every app here is <span className="text-fg">reviewed by people</span>, explained in plain words, and some come with{' '}
-            <span className="text-fg">rewards you can’t get anywhere else</span>.
-          </motion.p>
+            <Search className="size-5 shrink-0 text-subtle" aria-hidden />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search apps, e.g. loans"
+              aria-label="Search apps"
+              className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-subtle [&::-webkit-search-cancel-button]:hidden"
+            />
+            <button type="submit" className="group/go inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent-hover active:scale-[0.97]">
+              Search <ArrowRight className="size-4 transition-transform group-hover/go:translate-x-0.5" aria-hidden />
+            </button>
+          </motion.form>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.22, ease }}
-            className="mt-10 flex flex-col items-start"
-          >
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <Magnetic>
-                <ButtonLink to="/explore" size="lg" variant="secondary" className="group/cta rounded-full px-6 shadow-lg" rightIcon={<ArrowRight className="size-4 transition-transform duration-300 group-hover/cta:translate-x-0.5" />}>
-                  Find your next app
-                </ButtonLink>
-              </Magnetic>
-              <a
-                href="/rewards"
-                onClick={(e) => {
-                  e.preventDefault()
-                  document.getElementById('perks')?.scrollIntoView({ behavior: 'smooth' })
-                }}
-                className="group/reward inline-flex h-12 items-center gap-2.5 rounded-full glass pl-1.5 pr-4 text-sm font-medium text-fg backdrop-blur transition hover:border-line-strong"
-              >
-                <span className="relative grid size-9 place-items-center rounded-full bg-[linear-gradient(135deg,#1B3FD0,#3D7BFF,#7CC4FF)] text-white">
-                  <Gift className="size-4" aria-hidden />
-                  <span className="absolute -right-0.5 -top-0.5 size-2.5 animate-pulse-dot rounded-full bg-[#7CC4FF] text-[#7CC4FF] ring-2 ring-bg" aria-hidden />
-                </span>
-                {`${rewardCount} install rewards live`}
-                <ArrowRight className="size-3.5 text-subtle transition-transform group-hover/reward:translate-x-0.5" aria-hidden />
-              </a>
-            </div>
-            <p className="mt-3 text-xs text-subtle">Free to browse · No sign-up · Opens the official store</p>
-          </motion.div>
+          <motion.ul {...rise(0.62)} className="-mx-1 mt-4 flex max-w-full gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap" aria-label="Popular categories">
+            {categories.slice(0, 6).map((c) => (
+              <li key={c.slug} className="shrink-0">
+                <Link to={`/categories/${c.slug}`} className="inline-flex h-9 items-center gap-2 rounded-full glass px-3.5 text-[13px] text-muted transition hover:-translate-y-0.5 hover:border-line-strong hover:text-fg">
+                  <span className="size-2 rounded-full" style={{ background: c.colors[0] }} aria-hidden />
+                  {c.name}
+                </Link>
+              </li>
+            ))}
+          </motion.ul>
 
-          <motion.ul
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.9, delay: 0.4 }}
-            className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-6 text-[13px] text-subtle"
-            aria-label="Why people trust OshAds"
-          >
-            <li className="inline-flex items-center gap-2"><ShieldCheck className="size-4 text-fg/70" aria-hidden /> Hand-reviewed listings</li>
-            <li className="inline-flex items-center gap-2"><Store className="size-4 text-fg/70" aria-hidden /> Official websites and stores only</li>
+          <motion.ul {...rise(0.7)} className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-subtle" aria-label="Why people trust OshAds">
+            <li className="inline-flex items-center gap-1.5"><ShieldCheck className="size-4 text-fg/70" aria-hidden /> Hand-reviewed listings</li>
+            <li className="inline-flex items-center gap-1.5"><Store className="size-4 text-fg/70" aria-hidden /> Official stores only</li>
+            <li className="inline-flex items-center gap-1.5"><UserRoundX className="size-4 text-fg/70" aria-hidden /> No account needed</li>
           </motion.ul>
         </motion.div>
 
-        <motion.div
-          initial={reduced ? false : { opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.35, ease }}
-          className="relative z-10 min-w-0"
-        >
-          <SuggestedApps />
+        <motion.div style={reduced ? undefined : { scale: orbitScale, rotate: orbitTurn }}>
+          <Orbit reduced={reduced} />
         </motion.div>
       </div>
 
-      <motion.div style={reduced ? undefined : { y: statsY }} className="container-page relative mx-auto max-w-[1180px] pb-16">
-        <dl className="grid grid-cols-2 gap-y-8 border-y border-line py-8 sm:grid-cols-4">
-          {stats.map((s, i) => (
-            <div key={s.label} className={`px-1 text-center sm:px-6 ${i ? 'sm:border-l sm:border-line' : ''}`}>
-              <dd className="num font-serif text-[44px] leading-none tracking-[-0.02em] text-fg sm:text-[52px]">
-                <AnimatedCounter value={s.value} format={(n) => Math.round(n).toString() + s.suffix} />
-              </dd>
-              <dt className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-subtle">{s.label}</dt>
-            </div>
-          ))}
-        </dl>
+      {/* The three things to do here, as one bar of doors. */}
+      <motion.div {...rise(0.8)} className="container-page relative mx-auto max-w-[1200px] pb-16">
+        <div className="grid overflow-hidden rounded-[28px] glass max-sm:divide-y max-sm:divide-line sm:grid-cols-3 sm:divide-x sm:divide-line">
+          <Door to="/explore" icon={<Compass />} value={live.length} unit="apps to discover" cta="Browse apps" />
+          <Door to="/#games" onClick={toGames} icon={<Gamepad2 />} value={7} unit="free games to play" cta="Play now" />
+          <Door to="/rewards" icon={<Coins />} value={REWARD_COINS} unit="coins per install" cta={`${rewardCount} reward apps`} />
+        </div>
       </motion.div>
     </section>
   )
 }
 
-const ROTATE_MS = 4500
-
-/** One suggestion at a time from the recommendation engine, tuned by the visitor's interests and recent views. */
-function SuggestedApps() {
-  const reduced = usePrefersReducedMotion()
-  const [interests] = useLocalStorage<CategorySlug[]>('adwin:interests', ['loans'])
-  const { ids: viewed } = useRecentlyViewed()
-  const key = `apps:recommended:hero:${[...interests].sort().join(',')}:${viewed.slice(0, 4).join(',')}`
-  const { data } = useQuery(key, () => appsService.recommended(interests, 6, viewed), { keepPrevious: true })
-  const [index, setIndex] = useState(0)
-  const [paused, setPaused] = useState(false)
-  // Advance only once the current app has finished appearing, so a throttled tab never shows an empty card.
-  const settled = useRef(true)
-  const count = data?.length ?? 0
-
-  useEffect(() => {
-    if (reduced || paused || count < 2) return
-    const t = setInterval(() => {
-      if (document.hidden || !settled.current) return
-      settled.current = false
-      setIndex((i) => (i + 1) % count)
-    }, ROTATE_MS)
-    return () => clearInterval(t)
-  }, [reduced, paused, count])
-
-  const app = data?.[index % Math.max(count, 1)]
+/** Real app logos circling the OshAds mark. Hovering stops the rings so a logo can be clicked. */
+function Orbit({ reduced }: { reduced: boolean }) {
   return (
-    <div
-      className="relative mx-auto w-full max-w-[520px] lg:max-w-none"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
+    <motion.div
+      initial={reduced ? false : { opacity: 0, scale: 0.86 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 1.2, delay: 0.25, ease }}
+      className="group/orbit relative mx-auto aspect-square w-full max-w-[340px] sm:max-w-[440px] lg:max-w-[500px]"
     >
-      <div className="rounded-[28px] glass p-5 shadow-[0_40px_90px_-48px_rgb(27_63_208/0.5)] sm:p-6">
-        <div className="flex items-center justify-between">
-          <p className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-subtle">
-            <Sparkles className="size-3.5 text-accent-text" aria-hidden /> Suggested for you
-          </p>
-          {count > 1 && <span className="num text-xs text-subtle">{(index % count) + 1} / {count}</span>}
-        </div>
+      <div className="absolute inset-[14%] rounded-full bg-[radial-gradient(circle,rgb(47_107_255/0.35),transparent_68%)] blur-2xl" aria-hidden />
+      {RINGS.map((ring) => (
+        <div key={ring.r} className="absolute rounded-full border border-fg/10" style={{ inset: `${50 - ring.r}%` }} aria-hidden />
+      ))}
+      <div className="absolute inset-0 rounded-full border border-dashed border-fg/10" aria-hidden />
 
-        <div className="relative mt-5 min-h-[300px]" aria-live="polite">
-          {!app ? (
-            <Skeleton className="h-[300px] rounded-[20px]" />
-          ) : (
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={app.id}
-                initial={reduced ? false : { opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={reduced ? undefined : { opacity: 0, x: -24 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                onAnimationComplete={() => (settled.current = true)}
-              >
-                <Link to={`/app/${app.slug}`} className="group block rounded-[20px] bg-surface p-5 ring-1 ring-line transition hover:ring-line-strong focus-visible:ring-accent">
-                  <div className="grid aspect-[16/10] place-items-center rounded-2xl bg-surface-2">
-                    <AppIcon app={app} size="xl" className="shadow-md transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                  <div className="mt-4 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-display text-lg font-semibold text-fg">{app.name}</p>
-                      <p className="truncate text-xs text-subtle">
-                        {categoryBySlug[app.category]?.name}
-                        {app.website && ` · ${new URL(app.website).hostname.replace(/^www\./, '')}`}
-                      </p>
-                    </div>
-                    {app.reward && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent-soft px-2 py-1 text-xs font-semibold text-accent-text">
-                        <Coins className="size-3.5" aria-hidden /> {REWARD_COINS}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-[13px] leading-relaxed text-muted">
-                    {app.reason}
-                    {app.sponsored && <span className="text-subtle"> · Sponsored</span>}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text">
-                    View app <ArrowUpRight className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-                  </span>
-                </Link>
-              </motion.div>
-            </AnimatePresence>
-          )}
-        </div>
-
-        {count > 1 && (
-          <div className="mt-5 flex gap-1.5" role="group" aria-label="Choose a suggestion">
-            {data!.map((a, i) => {
-              const active = i === index % count
-              return (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => {
-                    settled.current = true
-                    setIndex(i)
-                  }}
-                  aria-label={`Show ${a.name}`}
-                  aria-current={active}
-                  className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line transition hover:bg-line-strong"
-                >
-                  {active && (
-                    <motion.span
-                      key={`${a.id}-${paused}`}
-                      className="absolute inset-y-0 left-0 rounded-full bg-accent"
-                      initial={{ width: reduced || paused ? '100%' : '0%' }}
-                      animate={{ width: '100%' }}
-                      transition={{ duration: reduced || paused ? 0 : ROTATE_MS / 1000, ease: 'linear' }}
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
+      <div className="absolute left-1/2 top-1/2 grid size-[24%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full glass-strong shadow-[0_0_60px_-6px_rgb(47_107_255/0.75)]">
+        <span className="absolute inset-0 animate-pulse-dot rounded-full text-accent" aria-hidden />
+        <LogoMark className="size-[54%]" />
       </div>
-    </div>
+
+      {RINGS.map((ring, k) => (
+        <div
+          key={ring.r}
+          className="absolute inset-0 animate-orbit group-hover/orbit:[animation-play-state:paused]"
+          style={{ animationDuration: `${ring.lap}s`, animationDirection: k % 2 ? 'reverse' : 'normal' }}
+        >
+          {ring.apps.map((app, i) => {
+            const a = (i / ring.apps.length) * Math.PI * 2 + k
+            return (
+              <div key={app.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${50 + ring.r * Math.cos(a)}%`, top: `${50 + ring.r * Math.sin(a)}%` }}>
+                {/* Turns the other way at the same pace, so the logo stays upright. */}
+                <div className="animate-orbit group-hover/orbit:[animation-play-state:paused]" style={{ animationDuration: `${ring.lap}s`, animationDirection: k % 2 ? 'normal' : 'reverse' }}>
+                  <Link to={`/app/${app.slug}`} aria-label={app.name} title={app.name} className="block transition-transform duration-300 hover:scale-125">
+                    <img
+                      src={app.iconImage}
+                      alt=""
+                      className={cn('max-w-none rounded-[26%] bg-white object-cover shadow-[0_14px_30px_-12px_rgb(0_0_0/0.6)] ring-1 ring-white/15', k ? 'size-10 sm:size-12 lg:size-[54px]' : 'size-9 sm:size-11 lg:size-12')}
+                    />
+                  </Link>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ))}
+
+      <a href="/#games" onClick={toGames} className="absolute left-0 top-[9%] z-10 inline-flex animate-float items-center gap-2 rounded-2xl glass-strong py-2 pl-2 pr-3.5 text-[13px] font-semibold text-fg shadow-lg transition hover:border-line-strong [animation-duration:6s]">
+        <span className="grid size-8 place-items-center rounded-xl bg-[linear-gradient(135deg,#7C3AED,#2F6BFF)] text-white"><Gamepad2 className="size-4" aria-hidden /></span>
+        7 free games
+      </a>
+      <Link to="/rewards" className="absolute bottom-[9%] right-0 z-10 inline-flex animate-float items-center gap-2 rounded-2xl glass-strong py-2 pl-2 pr-3.5 text-[13px] font-semibold text-fg shadow-lg transition hover:border-line-strong [animation-delay:-3s] [animation-duration:7s]">
+        <span className="grid size-8 place-items-center rounded-xl bg-[linear-gradient(145deg,#FDE68A,#F59E0B)] text-[#78350F]"><Coins className="size-4" aria-hidden /></span>
+        +{REWARD_COINS} coins per install
+      </Link>
+    </motion.div>
   )
 }
 
-/** Sparse drifting particles drawn on a single canvas; paused when reduced motion is on. */
-function Particles() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const reduced = usePrefersReducedMotion()
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas || reduced) return
-    const ctx = canvas.getContext('2d')!
-    let raf = 0
-    const dpr = Math.min(2, window.devicePixelRatio)
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * dpr
-      canvas.height = canvas.offsetHeight * dpr
-    }
-    resize()
-    const pts = Array.from({ length: 36 }, () => ({
-      x: Math.random(),
-      y: Math.random(),
-      r: Math.random() * 1.4 + 0.4,
-      vx: (Math.random() - 0.5) * 0.00012,
-      vy: -Math.random() * 0.00018 - 0.00004,
-      a: Math.random() * 0.45 + 0.15,
-      c: ['rgba(27,63,208,A)', 'rgba(61,123,255,A)', 'rgba(124,196,255,A)'][Math.floor(Math.random() * 3)],
-    }))
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (const p of pts) {
-        p.x += p.vx
-        p.y += p.vy
-        if (p.y < -0.02) p.y = 1.02
-        if (p.x < 0) p.x = 1
-        if (p.x > 1) p.x = 0
-        ctx.beginPath()
-        ctx.fillStyle = p.c.replace('A', String(p.a))
-        ctx.arc(p.x * canvas.width, p.y * canvas.height, p.r * dpr, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    tick()
-    window.addEventListener('resize', resize)
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-    }
-  }, [reduced])
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full opacity-60" />
+function Door({ to, onClick, icon, value, unit, cta }: { to: string; onClick?: (e: MouseEvent) => void; icon: ReactNode; value: number; unit: string; cta: string }) {
+  return (
+    <Link to={to} onClick={onClick} className="group relative flex items-center gap-4 p-5 transition-colors duration-300 hover:bg-fg/[0.04] sm:p-6">
+      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#1B3FD0,#3D7BFF,#7CC4FF)] text-white shadow-[0_10px_24px_-10px_rgb(47_107_255/0.9)] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110 [&>svg]:size-5">{icon}</span>
+      <span className="min-w-0">
+        <span className="flex items-baseline gap-2">
+          <span className="num font-display text-[34px] font-bold leading-none tracking-[-0.03em] text-fg">
+            <AnimatedCounter value={value} format={(n) => Math.round(n).toString()} />
+          </span>
+          <span className="truncate text-sm font-medium text-fg">{unit}</span>
+        </span>
+        <span className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-semibold text-accent-text">
+          {cta} <ArrowUpRight className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </span>
+    </Link>
+  )
 }
