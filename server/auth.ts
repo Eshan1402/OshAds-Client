@@ -105,6 +105,7 @@ export function sessionCookie(token: string, opts: { expiresAt?: number; clear?:
   const parts = [`sid=${opts.clear ? '' : token}`, 'HttpOnly', 'SameSite=Lax', 'Path=/']
   if (opts.clear) parts.push('Max-Age=0')
   else if (opts.expiresAt) parts.push(`Max-Age=${Math.round((opts.expiresAt - Date.now()) / 1000)}`)
-  if (process.env.NODE_ENV === 'production') parts.push('Secure')
+  // Secure cookies are dropped by the browser over plain http, so only set it once the site is actually on https (SITE_URL).
+  if ((process.env.SITE_URL ?? '').startsWith('https://')) parts.push('Secure')
   return parts.join('; ')
 }
