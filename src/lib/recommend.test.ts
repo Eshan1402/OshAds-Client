@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { apps } from '@/data/apps'
 import { campaigns } from '@/data/campaigns'
 import type { Campaign, MobileApp } from '@/types'
-import { recommend } from './recommend'
+import { campaignRunning, recommend } from './recommend'
 
 const live = apps.filter((a) => a.status === 'live')
 
@@ -47,4 +47,15 @@ test('diversity re-rank spreads the first picks across categories', () => {
   ]
   const cats = new Set(recommend(pool, [], {}, 4).map((r) => r.app.category))
   assert.ok(cats.size >= 2, `got only ${[...cats].join(', ')}`)
+})
+
+test('a campaign stops promoting its app when paused, outside its dates or out of budget', () => {
+  const c = underDelivering('x')
+  const today = day(0)
+  assert.equal(campaignRunning(c, today), true)
+  assert.equal(campaignRunning({ ...c, status: 'paused' }, today), false)
+  assert.equal(campaignRunning({ ...c, startDate: day(1) }, today), false) // not started yet
+  assert.equal(campaignRunning({ ...c, endDate: day(-1) }, today), false) // ended yesterday
+  assert.equal(campaignRunning({ ...c, endDate: today }, today), true) // last day still counts
+  assert.equal(campaignRunning({ ...c, spent: c.budget }, today), false) // budget used up
 })

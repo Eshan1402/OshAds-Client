@@ -55,14 +55,16 @@ function bayesianRating(app: MobileApp) {
   return (PRIOR_WEIGHT * PRIOR_RATING + app.ratingCount * app.rating) / (PRIOR_WEIGHT + app.ratingCount)
 }
 
+/** Running = active, today within its dates (inclusive) and budget not used up. Anything else stops promoting the app. */
+export const campaignRunning = (c: Campaign, today = new Date().toISOString().slice(0, 10)) =>
+  c.status === 'active' && c.startDate <= today && c.endDate >= today && c.spent < c.budget
+
 function campaignPressure(app: MobileApp, campaigns: Campaign[], s: VisitorSignals) {
-  const today = new Date().toISOString().slice(0, 10)
   let best = 0
   for (const c of campaigns) {
-    if (c.appId !== app.id || c.status !== 'active' || c.startDate > today || c.endDate < today) continue
+    if (c.appId !== app.id || !campaignRunning(c)) continue
     if (s.country && c.targeting.countries.length && !c.targeting.countries.includes(s.country)) continue
     if (s.platform && !c.targeting.platforms.includes(s.platform)) continue
-    if (c.spent >= c.budget) continue
     // Under-delivering campaigns (behind their install target relative to time elapsed) get more help.
     const elapsed = clamp01((Date.now() - +new Date(c.startDate)) / (+new Date(c.endDate) - +new Date(c.startDate)))
     const delivered = c.targetInstalls ? c.downloads / c.targetInstalls : 1

@@ -26,8 +26,9 @@ export function PlatformChips({ platforms, className }: { platforms: Platform[];
 }
 
 export function CampaignBadgeChip({ app, className }: { app: MobileApp; className?: string }) {
-  if (!app.badge) return null
-  const reward = app.badge === 'Reward'
+  const badge = app.badge ?? (app.promoted ? 'Featured' : undefined)
+  if (!badge) return null
+  const reward = badge === 'Reward'
   return (
     <span
       className={cn(
@@ -37,7 +38,7 @@ export function CampaignBadgeChip({ app, className }: { app: MobileApp; classNam
       )}
     >
       {reward && <Gift className="size-3" aria-hidden />}
-      {app.badge}
+      {badge}
     </span>
   )
 }

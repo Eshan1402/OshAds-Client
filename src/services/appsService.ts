@@ -40,7 +40,7 @@ function sortApps(list: MobileApp[], sort: AppSort = 'popular') {
     newest: (a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.weeklyGrowth - a.weeklyGrowth,
     name: (a, b) => a.name.localeCompare(b.name),
   }
-  return [...list].sort(by[sort])
+  return [...list].sort((a, b) => +!!b.promoted - +!!a.promoted || by[sort](a, b)) // running campaigns first
 }
 
 export const appsService = {
@@ -73,7 +73,7 @@ export const appsService = {
   },
 
   featured() {
-    return request(() => db.apps.filter((a) => isPublic(a) && a.badge))
+    return request(() => db.apps.filter((a) => isPublic(a) && (a.promoted || a.badge)).sort((a, b) => +!!b.promoted - +!!a.promoted))
   },
 
   /**

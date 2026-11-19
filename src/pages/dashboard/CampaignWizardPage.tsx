@@ -164,8 +164,9 @@ export default function CampaignWizardPage() {
     setF((prev) => ({
       ...prev,
       appId: id,
-      platforms: a ? a.platforms : prev.platforms,
-      trackingUrl: a ? `${a.trackingUrl}&cid={cid}` : prev.trackingUrl,
+      // Website-only listings have no store platforms: keep the visitor-device targeting the user picked.
+      platforms: a?.platforms.length ? a.platforms : prev.platforms,
+      trackingUrl: a ? `${a.trackingUrl}${a.trackingUrl.includes('?') ? '&' : '?'}cid={cid}` : prev.trackingUrl,
       utmCampaign: prev.utmCampaign || (a ? `${a.slug}-${new Date().toLocaleString('en-US', { month: 'short' }).toLowerCase()}` : ''),
     }))
     setErrors({})
@@ -313,7 +314,7 @@ export default function CampaignWizardPage() {
                                 <AppIcon app={a} size="md" />
                                 <span className="min-w-0">
                                   <span className="block truncate text-sm font-semibold text-fg">{a.name}</span>
-                                  <span className="block text-xs text-subtle">{categoryBySlug[a.category].name} · {a.platforms.map((p) => (p === 'ios' ? 'iOS' : 'Android')).join(' & ')}</span>
+                                  <span className="block text-xs text-subtle">{categoryBySlug[a.category].name} · {a.platforms.length ? a.platforms.map((p) => (p === 'ios' ? 'iOS' : 'Android')).join(' & ') : 'Website'}</span>
                                   {a.status !== 'live' && <Badge tone="warning" className="mt-1">{a.status.replace('_', ' ')}</Badge>}
                                 </span>
                               </span>
@@ -346,7 +347,7 @@ export default function CampaignWizardPage() {
                           {() => (
                             <div className="flex gap-4">
                               {(['ios', 'android'] as const).map((p) => (
-                                <Checkbox key={p} checked={f.platforms.includes(p)} disabled={!!app && !app.platforms.includes(p)} onChange={(v) => set('platforms', v ? [...f.platforms, p] : f.platforms.filter((x) => x !== p))} label={p === 'ios' ? 'iOS' : 'Android'} />
+                                <Checkbox key={p} checked={f.platforms.includes(p)} disabled={!!app?.platforms.length && !app.platforms.includes(p)} onChange={(v) => set('platforms', v ? [...f.platforms, p] : f.platforms.filter((x) => x !== p))} label={p === 'ios' ? 'iOS' : 'Android'} />
                               ))}
                             </div>
                           )}

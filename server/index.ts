@@ -23,7 +23,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { recommend } from '../src/lib/recommend'
+import { campaignRunning, recommend } from '../src/lib/recommend'
 import { AGE_GATED } from '../src/data/apps'
 import type { Campaign, CategorySlug, Client, MobileApp, Permission } from '../src/types'
 import * as auth from './auth'
@@ -142,7 +142,13 @@ function withTrending(apps: MobileApp[]) {
   const trends = appTrends()
   const score = (a: MobileApp) => trends.get(a.id)?.score ?? 0
   const rank = new Map(apps.filter((a) => a.status === 'live').sort((a, b) => score(b) - score(a)).map((a, i) => [a.id, i + 1]))
-  return apps.map((a) => (rank.has(a.id) ? { ...a, trendingRank: rank.get(a.id), weeklyGrowth: trends.get(a.id)?.growth ?? 0 } : a))
+  // Worked out on every load, so a campaign that ends, is paused or spends its budget unfeatures its app with no manual step.
+  const promoted = new Set(liveCampaigns().filter((c) => campaignRunning(c)).map((c) => c.appId))
+  return apps.map((a) => ({
+    ...a,
+    ...(rank.has(a.id) && { trendingRank: rank.get(a.id), weeklyGrowth: trends.get(a.id)?.growth ?? 0 }),
+    promoted: promoted.has(a.id),
+  }))
 }
 
 // Per-IP, per-minute caps on the public endpoints. Generous because mobile carriers put many people behind one IP.
@@ -291,6 +297,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     if (kind === 'apps') {
       const bad = URL_FIELDS.find((f) => doc[f] !== undefined && doc[f] !== '' && !isWebUrl(doc[f]))
       if (bad) throw new HttpError(400, `${bad} must be a web address starting with https://`)
+      delete doc.promoted // computed from campaigns on every load; storing it would keep an ended campaign featured
     }
     if (putDoc(kind, doc, url.searchParams.get('create') === '1') === 'exists') throw new HttpError(409, 'That ID is already taken. Try again.')
     return send(res, 200, doc)

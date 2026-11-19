@@ -61,6 +61,7 @@ export function SectionHeader({
 export function CampaignTicker() {
   const { data } = useQuery('apps:featured', () => appsService.featured())
   if (!data) return <div className="h-14 border-y border-line" />
+  if (!data.length) return null // no campaign running: no ticker
   const row = [...data, ...data]
   return (
     <div className="group relative overflow-hidden border-y border-line bg-surface/40 py-3 backdrop-blur-xl" aria-label="Live campaigns">
@@ -71,7 +72,7 @@ export function CampaignTicker() {
           <Link key={`${a.id}-${i}`} to={`/app/${a.slug}`} className="flex min-h-10 items-center gap-2.5 text-sm" tabIndex={i >= data.length ? -1 : 0}>
             <AppIcon app={a} size="xs" />
             <span className="font-semibold text-fg">{a.name}</span>
-            <span className="text-subtle">{a.badge}</span>
+            <span className="text-subtle">{a.badge ?? 'Featured'}</span>
             {a.downloads > 0 && <span className="num text-subtle">· {formatDownloads(a.downloads)}</span>}
           </Link>
         ))}

@@ -76,6 +76,8 @@ export interface MobileApp {
   benefits: string[]
   tags: string[]
   badge?: CampaignBadge
+  /** Set by the server on every load: true while one of the app's campaigns is running. Never saved. */
+  promoted?: boolean
   reward?: string
   trendingRank?: number
   weeklyGrowth: number

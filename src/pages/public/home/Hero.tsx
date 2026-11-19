@@ -3,21 +3,18 @@ import { ArrowRight, ArrowUpRight, Coins, Compass, Gamepad2, Search, ShieldCheck
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { RotatingWord } from '@/components/motion/RotatingWord'
-import { apps, REWARD_COINS } from '@/data/apps'
+import { apps as seedApps, REWARD_COINS } from '@/data/apps'
 import { categories } from '@/data/categories'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
+import { useQuery } from '@/hooks/useQuery'
+import { appsService } from '@/services/appsService'
+import type { MobileApp } from '@/types'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
+import { AppIcon } from '@/components/ui/AppIcon'
 import { LogoMark } from '@/components/ui/Logo'
 import { cn } from '@/utils/cn'
 
-const live = apps.filter((a) => a.status === 'live')
-const rewardCount = live.filter((a) => a.reward).length
-const withLogo = live.filter((a) => a.iconImage)
-// Two rings of real listings circling the logo: radius (% of the stage), seconds per lap, which apps.
-const RINGS = [
-  { r: 27, lap: 44, apps: withLogo.slice(0, 4) },
-  { r: 46, lap: 70, apps: withLogo.slice(4, 11) },
-]
+const seedLive = seedApps.filter((a) => a.status === 'live') // shown until the live catalogue arrives
 const ease = [0.16, 1, 0.3, 1] as const
 const toGames = (e: MouseEvent) => {
   e.preventDefault()
@@ -28,6 +25,10 @@ export function Hero() {
   const reduced = usePrefersReducedMotion()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
+  // Live catalogue, running campaigns first (appsService sorts them up), so promoted apps always make the hero.
+  const live = useQuery('apps:hero', () => appsService.list()).data ?? seedLive
+  const withLogo = live.filter((a) => a.iconImage)
+  const rewardCount = live.filter((a) => a.reward).length
   // Leaving the hero: the words lift and fade while the orbit grows and turns, so the scroll feels like flying past it.
   const section = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end start'] })
@@ -155,7 +156,7 @@ export function Hero() {
         </motion.div>
 
         <motion.div style={reduced ? undefined : { scale: orbitScale, rotate: orbitTurn }}>
-          <Orbit reduced={reduced} />
+          <Orbit reduced={reduced} logos={withLogo} featured={live.find((a) => a.promoted)} />
         </motion.div>
       </div>
 
@@ -172,7 +173,12 @@ export function Hero() {
 }
 
 /** Real app logos circling the OshAds mark. Hovering stops the rings so a logo can be clicked. */
-function Orbit({ reduced }: { reduced: boolean }) {
+function Orbit({ reduced, logos, featured }: { reduced: boolean; logos: MobileApp[]; featured?: MobileApp }) {
+  // Two rings: radius (% of the stage), seconds per lap, which apps. `logos` lists promoted apps first, so they land on the inner ring.
+  const RINGS = [
+    { r: 27, lap: 44, apps: logos.slice(0, 4) },
+    { r: 46, lap: 70, apps: logos.slice(4, 11) },
+  ]
   return (
     <motion.div
       initial={reduced ? false : { opacity: 0, scale: 0.86 }}
@@ -207,7 +213,7 @@ function Orbit({ reduced }: { reduced: boolean }) {
                     <img
                       src={app.iconImage}
                       alt=""
-                      className={cn('max-w-none rounded-[26%] bg-white object-cover shadow-[0_14px_30px_-12px_rgb(0_0_0/0.6)] ring-1 ring-white/15', k ? 'size-10 sm:size-12 lg:size-[54px]' : 'size-9 sm:size-11 lg:size-12')}
+                      className={cn('max-w-none rounded-[26%] bg-white object-cover shadow-[0_14px_30px_-12px_rgb(0_0_0/0.6)]', app.promoted ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/15', k ? 'size-10 sm:size-12 lg:size-[54px]' : 'size-9 sm:size-11 lg:size-12')}
                     />
                   </Link>
                 </div>
@@ -225,6 +231,15 @@ function Orbit({ reduced }: { reduced: boolean }) {
         <span className="grid size-8 place-items-center rounded-xl bg-[linear-gradient(145deg,#FDE68A,#F59E0B)] text-[#78350F]"><Coins className="size-4" aria-hidden /></span>
         +{REWARD_COINS} coins per install
       </Link>
+      {featured && (
+        <Link to={`/app/${featured.slug}`} className="absolute right-0 top-[2%] z-10 inline-flex max-w-[60%] animate-float items-center gap-2 rounded-2xl glass-strong py-2 pl-2 pr-3.5 text-[13px] font-semibold text-fg shadow-lg ring-1 ring-amber-400/50 transition hover:border-line-strong [animation-delay:-1.5s] [animation-duration:6.5s]">
+          <AppIcon app={featured} size="xs" />
+          <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-500">Featured</span>
+            <span className="block truncate">{featured.name}</span>
+          </span>
+        </Link>
+      )}
     </motion.div>
   )
 }
