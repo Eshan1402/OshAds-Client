@@ -58,4 +58,5 @@ test('a campaign stops promoting its app when paused, outside its dates or out o
   assert.equal(campaignRunning({ ...c, endDate: day(-1) }, today), false) // ended yesterday
   assert.equal(campaignRunning({ ...c, endDate: today }, today), true) // last day still counts
   assert.equal(campaignRunning({ ...c, spent: c.budget }, today), false) // budget used up
+  assert.equal(campaignRunning({ ...c, budget: 0, spent: 0 }, today), true) // $0 = no cap set yet
 })

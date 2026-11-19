@@ -55,9 +55,9 @@ function bayesianRating(app: MobileApp) {
   return (PRIOR_WEIGHT * PRIOR_RATING + app.ratingCount * app.rating) / (PRIOR_WEIGHT + app.ratingCount)
 }
 
-/** Running = active, today within its dates (inclusive) and budget not used up. Anything else stops promoting the app. */
+/** Running = active, today within its dates (inclusive) and budget not used up (a $0 budget means no cap yet). */
 export const campaignRunning = (c: Campaign, today = new Date().toISOString().slice(0, 10)) =>
-  c.status === 'active' && c.startDate <= today && c.endDate >= today && c.spent < c.budget
+  c.status === 'active' && c.startDate <= today && c.endDate >= today && (c.budget <= 0 || c.spent < c.budget)
 
 function campaignPressure(app: MobileApp, campaigns: Campaign[], s: VisitorSignals) {
   let best = 0

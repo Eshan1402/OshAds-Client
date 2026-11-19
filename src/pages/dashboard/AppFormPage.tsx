@@ -8,7 +8,7 @@ import { useQuery } from '@/hooks/useQuery'
 import { appsService } from '@/services/appsService'
 import { clientsService } from '@/services/clientsService'
 import { queryClient } from '@/services/queryClient'
-import type { AppFeature, AppStatus, CategorySlug, MobileApp, Platform, ScreenArchetype } from '@/types'
+import type { AppFeature, CategorySlug, MobileApp, Platform, ScreenArchetype } from '@/types'
 import { cn } from '@/utils/cn'
 import { readImage } from '@/utils/image'
 import { AppCard } from '@/components/apps/AppCard'
@@ -37,7 +37,7 @@ const blank: Draft = {
   rating: 0, ratingCount: 0, downloads: 0, size: '', version: '', updatedAt: new Date().toISOString().slice(0, 10), ageRating: '',
   icon: 'sparkles', colors: palettes[0], archetype: 'list', screenshots: 0,
   features: [{ icon: 'zap', title: '', description: '' }], benefits: [''], tags: [], weeklyGrowth: 0, appStoreUrl: '', playStoreUrl: '',
-  trackingUrl: '', status: 'draft', screenshotImages: [],
+  trackingUrl: '', status: 'live', screenshotImages: [], // listed on save; whether it's featured is set on its campaigns
 }
 
 export default function AppFormPage() {
@@ -174,16 +174,6 @@ export default function AppFormPage() {
                 {({ id }) => (
                   <Select id={id} value={d.category} onChange={(e) => set('category', e.target.value as CategorySlug)}>
                     {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Campaign status">
-                {({ id }) => (
-                  <Select id={id} value={d.status} onChange={(e) => set('status', e.target.value as AppStatus)}>
-                    <option value="draft">Draft — not visible</option>
-                    <option value="in_review">In review</option>
-                    <option value="live">Live — visible to users</option>
-                    <option value="paused">Paused</option>
                   </Select>
                 )}
               </Field>

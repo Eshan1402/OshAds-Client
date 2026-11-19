@@ -186,9 +186,11 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
     if (AGE_GATED.includes(app.category) && body.adult !== true) throw new HttpError(403, 'Confirm you are 18 or older to open this app.')
     const store = body.store === 'ios' || body.store === 'android' ? body.store : null
     const { clickId, reward } = rewards.recordClick(app.id, visit(req), rewards.validWallet(body.walletId) ? body.walletId : null, cleanSource(body.source))
-    const dest = (store === 'ios' ? app.appStoreUrl : store === 'android' ? app.playStoreUrl : undefined) ?? app.trackingUrl
+    // A running campaign's tracking link wins: it's what the advertiser's attribution partner counts installs on.
+    const campaign = allDocs<Campaign>('campaigns').find((c) => c.appId === app.id && campaignRunning(c) && isWebUrl(c.tracking.trackingUrl))
+    const dest = campaign?.tracking.trackingUrl ?? (store === 'ios' ? app.appStoreUrl : store === 'android' ? app.playStoreUrl : undefined) ?? app.trackingUrl
     if (!isWebUrl(dest)) throw new HttpError(409, 'This app’s link isn’t set up correctly yet.')
-    return send(res, 200, { clickId, reward, redirect: dest.replaceAll('{click_id}', clickId) })
+    return send(res, 200, { clickId, reward, redirect: dest.replaceAll('{click_id}', clickId).replaceAll('{cid}', campaign?.id ?? '') })
   }
 
   const walletMatch = /^\/api\/wallet\/([^/]+)$/.exec(pathname)
@@ -298,6 +300,10 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
       const bad = URL_FIELDS.find((f) => doc[f] !== undefined && doc[f] !== '' && !isWebUrl(doc[f]))
       if (bad) throw new HttpError(400, `${bad} must be a web address starting with https://`)
       delete doc.promoted // computed from campaigns on every load; storing it would keep an ended campaign featured
+    }
+    if (kind === 'campaigns') {
+      const link = (doc.tracking as { trackingUrl?: unknown } | undefined)?.trackingUrl
+      if (link !== undefined && link !== '' && !isWebUrl(link)) throw new HttpError(400, 'Tracking URL must be a web address starting with https://')
     }
     if (putDoc(kind, doc, url.searchParams.get('create') === '1') === 'exists') throw new HttpError(409, 'That ID is already taken. Try again.')
     return send(res, 200, doc)

@@ -19,7 +19,6 @@ import { CampaignTable } from '@/components/campaigns/CampaignTable'
 import { TrafficChart } from '@/components/charts/TrafficChart'
 import { PageHeader } from '@/components/layout/DashboardLayout'
 import { PageTransition } from '@/components/layout/PageTransition'
-import { appStatusBadge } from './AppsPage'
 import { ClientLogo, clientStatus } from './ClientsPage'
 
 export default function ClientDetailPage() {
@@ -97,7 +96,7 @@ export default function ClientDetailPage() {
                 <Link key={a.id} to={`/dashboard/apps/${a.id}`} className="flex items-center gap-3 rounded-xl border border-line p-3 transition hover:bg-surface-2">
                   <AppIcon app={a} size="md" />
                   <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-fg">{a.name}</span><span className="block truncate text-xs text-subtle">{a.tagline}</span></span>
-                  <span className="flex flex-col items-end gap-1"><RatingPill value={a.rating} /><Badge tone={appStatusBadge[a.status].tone}>{appStatusBadge[a.status].label}</Badge></span>
+                  <RatingPill value={a.rating} />
                 </Link>
               ))}
             </div>

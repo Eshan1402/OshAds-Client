@@ -11,14 +11,14 @@ import { appsService } from '@/services/appsService'
 import { campaignMetrics, campaignsService } from '@/services/campaignsService'
 import { clientsService } from '@/services/clientsService'
 import { queryClient } from '@/services/queryClient'
-import type { Campaign } from '@/types'
+import type { Campaign, CampaignStatus } from '@/types'
 import { formatCurrency, formatCurrencyPrecise, formatDate, formatNumber, formatPercent } from '@/utils/format'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { StatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, statusLabel } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/Feedback'
-import { Field, Input } from '@/components/ui/Form'
+import { Field, Input, Select } from '@/components/ui/Form'
 import { ProgressBar } from '@/components/ui/Misc'
 import { ConfirmDialog, Modal } from '@/components/ui/Modal'
 import { useCampaignActions } from '@/components/campaigns/useCampaignActions'
@@ -113,7 +113,7 @@ export default function CampaignDetailPage() {
         <Card>
           <CardHeader title="Budget & pacing" />
           <CardBody className="space-y-5">
-            <Meter label="Budget used" value={`${formatCurrency(c.spent)} of ${formatCurrency(c.budget)}`} pct={m.utilization} tone={m.utilization > 90 ? 'warning' : 'accent'} />
+            <Meter label="Budget used" value={c.budget ? `${formatCurrency(c.spent)} of ${formatCurrency(c.budget)}` : `${formatCurrency(c.spent)} · no budget cap set`} pct={m.utilization} tone={m.utilization > 90 ? 'warning' : 'accent'} />
             <Meter label="Install target" value={`${formatNumber(c.downloads)} of ${formatNumber(c.targetInstalls)}`} pct={m.targetProgress} tone="success" />
             <Meter label="Flight elapsed" value={`${Math.round(elapsed)}%`} pct={elapsed} tone="iris" />
             <dl className="grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
@@ -249,19 +249,25 @@ function EditCampaignModal({ campaign, onClose, onSaved }: { campaign: Campaign;
   const [dailyCap, setDailyCap] = useState(campaign.dailyCap)
   const [bid, setBid] = useState(campaign.bid)
   const [endDate, setEndDate] = useState(campaign.endDate)
+  const [status, setStatus] = useState<CampaignStatus>(campaign.status)
+  const [trackingUrl, setTrackingUrl] = useState(campaign.tracking.trackingUrl)
+  const [postbackUrl, setPostbackUrl] = useState(campaign.tracking.postbackUrl)
   const [saving, setSaving] = useState(false)
   const errors = {
     name: name.trim().length < 4 ? 'Name is too short.' : undefined,
-    budget: budget < campaign.spent ? `Budget can’t be below amount already spent (${formatCurrency(campaign.spent)}).` : undefined,
-    dailyCap: dailyCap <= 0 || dailyCap > budget ? 'Daily cap must be positive and within budget.' : undefined,
+    budget: budget < 0 || (budget > 0 && budget < campaign.spent) ? `Budget can’t be below amount already spent (${formatCurrency(campaign.spent)}).` : undefined,
+    // $0 budget = no cap yet, so a $0 daily cap is fine with it.
+    dailyCap: dailyCap < 0 || (budget > 0 && (dailyCap <= 0 || dailyCap > budget)) ? 'Daily cap must be positive and within budget.' : undefined,
     endDate: endDate <= campaign.startDate ? 'End date must be after the start date.' : undefined,
+    trackingUrl: trackingUrl && !/^https?:\/\/\S+$/i.test(trackingUrl) ? 'Enter a full web address starting with https://' : undefined,
+    postbackUrl: postbackUrl && !/^https?:\/\/\S+$/i.test(postbackUrl) ? 'Enter a full web address starting with https://' : undefined,
   }
   const invalid = Object.values(errors).some(Boolean)
   const save = async () => {
     if (invalid) return
     setSaving(true)
     try {
-      await campaignsService.update(campaign.id, { name: name.trim(), budget, dailyCap, bid, endDate })
+      await campaignsService.update(campaign.id, { name: name.trim(), budget, dailyCap, bid, endDate, status, tracking: { ...campaign.tracking, trackingUrl: trackingUrl.trim(), postbackUrl: postbackUrl.trim() } })
       queryClient.invalidate('campaigns')
       toast({ tone: 'success', title: 'Campaign updated', description: name })
       onSaved()
@@ -291,6 +297,22 @@ function EditCampaignModal({ campaign, onClose, onSaved }: { campaign: Campaign;
         <Field label="Daily cap" error={errors.dailyCap}>{({ id, invalid: inv }) => <Input id={id} invalid={inv} type="number" value={dailyCap} onChange={(e) => setDailyCap(Number(e.target.value))} leftIcon={<span className="text-xs font-semibold">$</span>} />}</Field>
         <Field label={`Bid (${campaign.payoutModel})`}>{({ id }) => <Input id={id} type="number" step={0.05} value={bid} onChange={(e) => setBid(Number(e.target.value))} leftIcon={<span className="text-xs font-semibold">$</span>} />}</Field>
         <Field label="End date" error={errors.endDate}>{({ id, invalid: inv }) => <Input id={id} invalid={inv} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />}</Field>
+        <Field label="Tracking URL" error={errors.trackingUrl} hint="Visitors who tap Download are sent here while the campaign is live. {click_id} and {cid} are filled in." className="sm:col-span-2">
+          {({ id, invalid: inv, describedBy }) => <Input id={id} invalid={inv} aria-describedby={describedBy} value={trackingUrl} onChange={(e) => setTrackingUrl(e.target.value)} placeholder="https://app.appsflyer.com/…?clickid={click_id}" />}
+        </Field>
+        <Field label="Postback URL" error={errors.postbackUrl} className="sm:col-span-2">
+          {({ id, invalid: inv }) => <Input id={id} invalid={inv} value={postbackUrl} onChange={(e) => setPostbackUrl(e.target.value)} placeholder="https://…" />}
+        </Field>
+        <Field label="Status" hint={status === 'active' ? 'Live: the app is featured on the site and clicks use this tracking link.' : 'Not live: the app stays listed but isn’t featured.'} className="sm:col-span-2">
+          {({ id, describedBy }) => (
+            <Select id={id} aria-describedby={describedBy} value={status} onChange={(e) => setStatus(e.target.value as CampaignStatus)}>
+              <option value="active">Active (live)</option>
+              <option value="paused">Paused</option>
+              <option value="draft">Draft</option>
+              {!['active', 'paused', 'draft'].includes(campaign.status) && <option value={campaign.status}>{statusLabel(campaign.status)}</option>}
+            </Select>
+          )}
+        </Field>
       </div>
     </Modal>
   )

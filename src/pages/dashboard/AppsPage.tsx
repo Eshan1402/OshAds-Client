@@ -9,10 +9,11 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useQuery } from '@/hooks/useQuery'
 import { appsService } from '@/services/appsService'
 import { campaignsService } from '@/services/campaignsService'
+import { campaignRunning } from '@/lib/recommend'
 import type { AppStatus, MobileApp } from '@/types'
 import { formatCompact, formatDownloads } from '@/utils/format'
 import { AppIcon } from '@/components/ui/AppIcon'
-import { Badge, type BadgeTone } from '@/components/ui/Badge'
+import { type BadgeTone } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/Feedback'
@@ -35,25 +36,24 @@ export default function AppsPage() {
   const [view, setView] = useLocalStorage<'grid' | 'list'>('adwin:apps-view', 'grid')
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
-  const [status, setStatus] = useState<AppStatus | 'all'>('all')
   const dq = useDebounce(q, 180)
   const { data, error, refetch } = useQuery('apps:all:admin', () => appsService.list({ includeHidden: true }))
   const camps = useQuery('campaigns:list:all::', () => campaignsService.list())
   const activeByApp = useMemo(() => {
     const m = new Map<string, number>()
-    camps.data?.forEach((c) => c.status === 'active' && m.set(c.appId, (m.get(c.appId) ?? 0) + 1))
+    camps.data?.forEach((c) => campaignRunning(c) && m.set(c.appId, (m.get(c.appId) ?? 0) + 1))
     return m
   }, [camps.data])
   const list = useMemo(
-    () => data?.filter((a) => (cat === 'all' || a.category === cat) && (status === 'all' || a.status === status) && (!dq || `${a.name} ${a.developer}`.toLowerCase().includes(dq.toLowerCase()))),
-    [data, cat, status, dq],
+    () => data?.filter((a) => (cat === 'all' || a.category === cat) && (!dq || `${a.name} ${a.developer}`.toLowerCase().includes(dq.toLowerCase()))),
+    [data, cat, dq],
   )
 
   return (
     <PageTransition>
       <PageHeader
         title="Applications"
-        description="Every app promoted on OshAds, with its listing status and campaign activity."
+        description="Every app promoted on OshAds. Whether an app is live is set on its campaigns."
         actions={can('apps:write') && <ButtonLink to="/dashboard/apps/new" leftIcon={<Plus className="size-4" />}>Add application</ButtonLink>}
       />
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -61,10 +61,6 @@ export default function AppsPage() {
         <Select selectSize="sm" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category" className="sm:w-44">
           <option value="all">All categories</option>
           {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-        </Select>
-        <Select selectSize="sm" value={status} onChange={(e) => setStatus(e.target.value as AppStatus | 'all')} aria-label="Status" className="sm:w-36">
-          <option value="all">Any status</option>
-          {Object.entries(appStatusBadge).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </Select>
         <SegmentedControl className="sm:ml-auto" label="View" size="sm" value={view} onChange={setView} options={[{ value: 'grid', label: 'Grid', icon: <LayoutGrid /> }, { value: 'list', label: 'List', icon: <List /> }]} />
       </div>
@@ -96,8 +92,7 @@ export default function AppsPage() {
                 <th className="px-3 py-2.5 font-medium">Platforms</th>
                 <th className="px-3 py-2.5 text-right font-medium">Rating</th>
                 <th className="px-3 py-2.5 text-right font-medium">Downloads</th>
-                <th className="px-3 py-2.5 text-right font-medium">Active campaigns</th>
-                <th className="px-5 py-2.5 font-medium">Status</th>
+                <th className="px-5 py-2.5 text-right font-medium">Live campaigns</th>
               </tr>
             </thead>
             <tbody>
@@ -113,8 +108,7 @@ export default function AppsPage() {
                   <td className="px-3 py-2.5 text-muted">{a.platforms.map((p) => (p === 'ios' ? 'iOS' : 'Android')).join(', ')}</td>
                   <td className="px-3 py-2.5 text-right"><RatingPill value={a.rating} /></td>
                   <td className="num px-3 py-2.5 text-right text-fg">{formatCompact(a.downloads)}</td>
-                  <td className="num px-3 py-2.5 text-right text-fg">{activeByApp.get(a.id) ?? 0}</td>
-                  <td className="px-5 py-2.5"><Badge tone={appStatusBadge[a.status].tone} dot>{appStatusBadge[a.status].label}</Badge></td>
+                  <td className="num px-5 py-2.5 text-right text-fg">{activeByApp.get(a.id) ?? 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -126,13 +120,9 @@ export default function AppsPage() {
 }
 
 function AppTile({ app, active }: { app: MobileApp; active: number }) {
-  const s = appStatusBadge[app.status]
   return (
     <Link to={`/dashboard/apps/${app.id}`} className="card group flex flex-col p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <AppIcon app={app} size="md" className="transition-transform duration-300 group-hover:scale-105" />
-        <Badge tone={s.tone} dot>{s.label}</Badge>
-      </div>
+      <AppIcon app={app} size="md" className="transition-transform duration-300 group-hover:scale-105" />
       <h3 className="mt-3 font-display text-[15px] font-bold text-fg">{app.name}</h3>
       <p className="text-xs text-subtle">{app.developer} · {categoryBySlug[app.category].name}</p>
       <dl className="num mt-4 grid grid-cols-3 gap-2 border-t border-line pt-3 text-xs">
