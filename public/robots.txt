@@ -3,4 +3,4 @@ Allow: /
 Disallow: /dashboard
 Disallow: /login
 
-Sitemap: https://oshads.com/sitemap.xml
+Sitemap: https://click.oshads.com/sitemap.xml

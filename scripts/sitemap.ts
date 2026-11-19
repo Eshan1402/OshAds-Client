@@ -5,7 +5,7 @@ import { categories } from '../src/data/categories'
 import { posts } from '../src/data/posts'
 
 // shortcut: reads the seed catalogue; once the API is live, fetch live apps from it instead.
-const SITE = (process.env.SITE_URL ?? 'https://oshads.com').replace(/\/$/, '')
+const SITE = (process.env.SITE_URL ?? 'https://click.oshads.com').replace(/\/$/, '')
 const today = new Date().toISOString().slice(0, 10)
 
 const urls = [

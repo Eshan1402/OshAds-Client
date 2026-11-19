@@ -1,3 +1,11 @@
 click.oshads.com {
+	encode zstd gzip
+	header {
+		# HSTS on this host only: no includeSubDomains, so the agency's other oshads.com sites are unaffected.
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'"
+		-Server
+	}
 	reverse_proxy app:8788
 }
