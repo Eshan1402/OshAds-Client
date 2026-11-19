@@ -23,8 +23,8 @@ export function CustomCursor() {
 function Cursor() {
   const x = useMotionValue(-100)
   const y = useMotionValue(-100)
-  const ringX = useSpring(x, { stiffness: 380, damping: 32, mass: 0.6 })
-  const ringY = useSpring(y, { stiffness: 380, damping: 32, mass: 0.6 })
+  const ringX = useSpring(x, { stiffness: 1100, damping: 48, mass: 0.25 })
+  const ringY = useSpring(y, { stiffness: 1100, damping: 48, mass: 0.25 })
   const [mode, setMode] = useState<Mode>('hidden')
   const [label, setLabel] = useState('')
   const [pressed, setPressed] = useState(false)

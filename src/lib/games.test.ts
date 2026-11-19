@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { canPour, cluster, dealTubes, fit, floating, lineCells, placeBlock, placeWords, pour, SHAPES, sortedTubes, stepSnake, TUBE, newFarm, PADS, SPOT, stepFarm } from './games'
+import { canPour, cluster, dealTubes, fit, floating, lineCells, placeBlock, placeWords, pour, SHAPES, sortedTubes, stepSnake, TUBE, newFarm, PADS, SPOT, stepFarm, FARM_SPEED, farmGoal } from './games'
 
 test('word search hides every word readably along a straight line, and only straight drags select', () => {
   const { grid, placed } = placeWords(['APPLE', 'MANGO', 'PEAR', 'KIWI', 'LEMON', 'GRAPE'], 10)
@@ -59,7 +59,7 @@ test('farm stand: standing by things picks, stocks, sells, collects the takings 
     for (let t = 0; t < seconds; t += 0.05) stepFarm(f, 0, 0, 0.05, () => 0) // rnd 0: every customer wants one item
   }
   stepFarm(f, 1, 0, 1, () => 0)
-  assert.equal(f.x, 290) // 110 px/s to the right
+  assert.equal(f.x, 180 + FARM_SPEED) // one second walking right
 
   stand({ x: 54, y: 78 }, 10) // between four tomato plants
   assert.deepEqual(f.carry, ['tomato', 'tomato', 'tomato', 'tomato']) // stops at a full basket
@@ -82,6 +82,19 @@ test('farm stand: standing by things picks, stocks, sells, collects the takings 
   f.coins = 150
   stand(PADS.helper, 3)
   assert.deepEqual([f.coins, f.helpers.length], [0, 1])
+})
+
+test('farm stand: the hint points at the next useful thing to do', () => {
+  const f = newFarm()
+  assert.equal(farmGoal(f).say, 'Pick ripe crops')
+  f.carry = ['tomato', 'tomato', 'tomato', 'tomato'] // basket full
+  assert.deepEqual(farmGoal(f), { at: SPOT.stall, say: 'Stock the stall' })
+  f.carry = []
+  f.till = 10
+  assert.deepEqual(farmGoal(f), { at: SPOT.till, say: 'Collect your coins' })
+  f.till = 0
+  f.coins = 60 // exactly the wheat field's price
+  assert.deepEqual(farmGoal(f), { at: PADS.wheat, say: 'Buy: Wheat field' })
 })
 
 test('farm stand: a hired helper picks and stocks the stall while the farmer stands still', () => {

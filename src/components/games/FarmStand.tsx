@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { carryCap, FARM_H as H, FARM_W as W, GROW_S, newFarm, PADS, SPOT, stepFarm, type Crop, type Farm, type FarmPad, type FarmSave, type Worker } from '@/lib/games'
+import { Coins, Footprints, PackageCheck, RotateCcw, ShoppingBasket, Sparkles, UserPlus, Wheat, type LucideIcon } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { carryCap, FARM_H as H, FARM_W as W, farmGoal, GROW_S, newFarm, PADS, SPOT, stepFarm, type Crop, type Farm, type FarmPad, type FarmSave, type Worker } from '@/lib/games'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { ARROWS, buzz, ScoreBar } from './shared'
+import { cn } from '@/utils/cn'
+import { ARROWS, buzz } from './shared'
 
 const STICK = 40 // px of drag for full speed
 const SHIRTS = ['#E11D48', '#7C3AED', '#0891B2', '#EA580C', '#DB2777', '#0D9488']
@@ -44,6 +46,52 @@ const text = (c: Ctx, str: string, x: number, y: number, size: number, fill = '#
   c.fillStyle = fill
   c.fillText(str, x, y)
 }
+
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'
+const emoji = (c: Ctx, ch: string, x: number, y: number, size: number) => {
+  c.font = `${size}px ${EMOJI_FONT}`
+  c.textAlign = 'center'
+  c.textBaseline = 'middle'
+  c.fillText(ch, x, y)
+  c.textBaseline = 'alphabetic'
+}
+/** Small text on a dark rounded pill, sized to fit. */
+const pill = (c: Ctx, str: string, x: number, y: number, size = 9, bg = 'rgba(17,24,39,0.78)', fg = '#fff') => {
+  c.font = `700 ${size}px system-ui, sans-serif`
+  const w = c.measureText(str).width + 10
+  box(c, x - w / 2, y - size / 2 - 3, w, size + 6, (size + 6) / 2, bg)
+  c.textAlign = 'center'
+  c.textBaseline = 'middle'
+  c.fillStyle = fg
+  c.fillText(str, x, y + 0.5)
+  c.textBaseline = 'alphabetic'
+}
+const twinkle = (c: Ctx, x: number, y: number, r: number) => {
+  box(c, x - r, y - 0.7, r * 2, 1.4, 0.7, '#fff')
+  box(c, x - 0.7, y - r, 1.4, r * 2, 0.7, '#fff')
+}
+/** A bouncing arrow over where the player should go next, with a glow on the ground. */
+function guide(c: Ctx, x: number, y: number, t: number) {
+  const b = Math.sin(t * 6) * 4
+  oval(c, x, y + 4, 22 + b, 7 + b * 0.3, 'rgba(250,204,21,0.28)')
+  const top = y - 52 + b
+  c.beginPath()
+  c.moveTo(x - 5, top)
+  c.lineTo(x + 5, top)
+  c.lineTo(x + 5, top + 10)
+  c.lineTo(x + 12, top + 10)
+  c.lineTo(x, top + 24)
+  c.lineTo(x - 12, top + 10)
+  c.lineTo(x - 5, top + 10)
+  c.closePath()
+  c.lineJoin = 'round'
+  c.lineWidth = 3
+  c.strokeStyle = '#78350F'
+  c.stroke()
+  c.fillStyle = '#FACC15'
+  c.fill()
+}
+const PAD_ICON: Record<FarmPad, string> = { wheat: '🌾', basket: '🧺', shoes: '👟', helper: '🧑‍🌾' }
 
 /** A picked crop, as carried, stacked on the stall or shown in a bubble. */
 function crop(c: Ctx, kind: Crop, x: number, y: number, r: number) {
@@ -163,6 +211,26 @@ function paintGround(c: Ctx, wheat: boolean) {
     dot(c, x + 48, 94, 2.4, '#5F3B22')
   }
 
+  // Wooden signs over the two fields
+  for (const [x, name] of [[70, 'TOMATOES'], [290, 'WHEAT']] as const) {
+    box(c, x - 2, 20, 4, 24, 1, '#6B4423')
+    box(c, x - 32, 9, 64, 19, 6, 'rgba(0,0,0,0.2)')
+    box(c, x - 32, 7, 64, 19, 6, fade(c, 0, 7, 0, 26, '#B07A45', '#8B5A2B'))
+    text(c, name, x, 21, 10, '#FFF7E6')
+  }
+
+  // Market awning behind the stall: posts, then a red-and-white striped canopy with a scalloped edge.
+  for (const x of [120, 240]) box(c, x - 3, 238, 6, 40, 2, '#7A4E22')
+  box(c, 106, 222, 148, 22, 6, 'rgba(0,0,0,0.18)')
+  for (let i = 0; i < 8; i++) box(c, 108 + i * 18, 218, 18, 22, i === 0 ? 6 : i === 7 ? 6 : 0, i % 2 ? '#FFFFFF' : '#E11D48')
+  for (let i = 0; i < 8; i++) {
+    c.beginPath()
+    c.arc(117 + i * 18, 240, 9, 0, Math.PI)
+    c.fillStyle = i % 2 ? '#F1F5F9' : '#BE123C'
+    c.fill()
+  }
+  box(c, 108, 218, 144, 3, 1.5, 'rgba(255,255,255,0.35)')
+
   // Cash mat
   box(c, SPOT.till.x - 23, SPOT.till.y - 21, 50, 50, 11, 'rgba(0,0,0,0.18)')
   box(c, SPOT.till.x - 26, SPOT.till.y - 26, 52, 52, 11, fade(c, 0, 274, 0, 326, '#3A9456', '#2B7443'))
@@ -217,34 +285,51 @@ function paintFrame(c: Ctx, f: Farm, t: number, stick: { x: number; y: number; f
       c.stroke()
       if (!p.wait) for (const k of [-1, 0, 1]) oval(c, p.x + k * 5 + sway, p.y - 11, 2.3, 5, k ? '#E9B824' : '#F7D560', k * 0.2)
     }
+    const glint = (Math.sin(t * 4 + p.x * 0.7 + p.y) + 1) / 2 // ripe crops twinkle so they read as "ready"
+    if (!p.wait && glint > 0.6) {
+      c.globalAlpha = (glint - 0.6) * 2.5
+      twinkle(c, p.x + 7, p.y - 12, 3.2)
+      c.globalAlpha = 1
+    }
   }
 
+  const labels: Array<() => void> = [] // drawn after trees and people so nothing covers them
   for (const id of Object.keys(PADS) as FarmPad[]) {
     const pad = PADS[id]
     const cost = pad.costs[f.level[id]]
     if (cost === undefined) continue
     const on = Math.hypot(f.x - pad.x, f.y - pad.y) < 26
+    const ready = f.coins + f.paid[id] >= cost
+    const lift = on ? -2 : 0
+    const y0 = pad.y - 26 + lift
     const fill = (52 * f.paid[id]) / cost
-    box(c, pad.x - 26, pad.y - 26, 52, 52, 11, on ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.24)')
+    box(c, pad.x - 25, pad.y - 22, 52, 52, 13, 'rgba(20,60,25,0.28)')
+    box(c, pad.x - 26, y0, 52, 52, 13, fade(c, 0, y0, 0, y0 + 52, on ? '#FFFFFF' : '#FBFDF7', on ? '#F1F8E9' : '#E3F0D6'))
     c.save()
     c.beginPath()
-    c.roundRect(pad.x - 26, pad.y - 26, 52, 52, 11)
+    c.roundRect(pad.x - 26, y0, 52, 52, 13)
     c.clip()
-    box(c, pad.x - 26, pad.y + 26 - fill, 52, fill, 0, 'rgba(250,204,21,0.8)')
+    box(c, pad.x - 26, y0 + 52 - fill, 52, fill, 0, 'rgba(250,204,21,0.55)')
     c.restore()
-    c.setLineDash([6, 4])
-    c.lineDashOffset = -t * 14 // marching border draws the eye
-    c.strokeStyle = '#fff'
-    c.lineWidth = 1.8
+    c.setLineDash(on || ready ? [6, 4] : [])
+    c.lineDashOffset = -t * 14 // marching border draws the eye when it can be bought
+    c.strokeStyle = ready ? '#F59E0B' : 'rgba(255,255,255,0.95)'
+    c.lineWidth = ready ? 2.4 : 1.8
     c.beginPath()
-    c.roundRect(pad.x - 26, pad.y - 26, 52, 52, 11)
+    c.roundRect(pad.x - 26, y0, 52, 52, 13)
     c.stroke()
     c.setLineDash([])
-    const [a, b] = pad.label.split(' ')
-    text(c, a, pad.x, pad.y - 9, 10)
-    text(c, b, pad.x, pad.y + 2, 10)
-    coin(c, pad.x - 12, pad.y + 15, 4.5)
-    text(c, `${cost - f.paid[id]}`, pad.x + 5, pad.y + 19, 12, '#FEF08A')
+    emoji(c, PAD_ICON[id], pad.x, y0 + 19, 22)
+    box(c, pad.x - 19, y0 + 35, 38, 13, 6.5, '#1F2937')
+    coin(c, pad.x - 11, y0 + 41, 3.8)
+    c.font = '700 9.5px system-ui, sans-serif'
+    c.textAlign = 'center'
+    c.fillStyle = '#FDE68A'
+    c.fillText(`${cost - f.paid[id]}`, pad.x + 4, y0 + 45)
+    labels.push(() => {
+      pill(c, pad.label, pad.x, pad.y + 36)
+      if (pad.costs.length > 1) for (let i = 0; i < pad.costs.length; i++) dot(c, pad.x - (pad.costs.length - 1) * 4 + i * 8, pad.y + 48, 2.4, i < f.level[id] ? '#FACC15' : 'rgba(255,255,255,0.6)')
+    })
   }
 
   const piles = Math.min(9, Math.ceil(f.till / 5))
@@ -263,17 +348,19 @@ function paintFrame(c: Ctx, f: Farm, t: number, stick: { x: number; y: number; f
         person(c, b.x, b.y, t, walking, 0, { shirt: SHIRTS[b.look % SHIRTS.length], skin: SKINS[b.look % SKINS.length], hair: HAIRS[b.look % HAIRS.length] })
         if (b.got) crop(c, 'tomato', b.x + 10, b.y + 5, 4)
         if (b.leaving) return
-        box(c, b.x + 4, b.y - 36, 22, 16, 7, '#fff')
+        box(c, b.x + 3, b.y - 37, 34, 19, 9.5, 'rgba(0,0,0,0.15)')
+        box(c, b.x + 3, b.y - 39, 34, 19, 9.5, '#fff')
         c.beginPath()
         c.moveTo(b.x + 8, b.y - 22)
-        c.lineTo(b.x + 6, b.y - 16)
-        c.lineTo(b.x + 14, b.y - 22)
+        c.lineTo(b.x + 5, b.y - 15)
+        c.lineTo(b.x + 15, b.y - 22)
         c.fillStyle = '#fff'
         c.fill()
-        c.font = '700 11px system-ui, sans-serif'
+        emoji(c, '🛒', b.x + 13, b.y - 29, 10)
+        c.font = '800 11px system-ui, sans-serif'
         c.textAlign = 'center'
         c.fillStyle = '#111827'
-        c.fillText(`${b.want - b.got}`, b.x + 15, b.y - 24)
+        c.fillText(`×${b.want - b.got}`, b.x + 27, b.y - 25)
       },
     ]),
     ...f.helpers.map((h): [number, () => void] => [
@@ -292,6 +379,10 @@ function paintFrame(c: Ctx, f: Farm, t: number, stick: { x: number; y: number; f
     ],
   ]
   scene.sort((a, b) => a[0] - b[0]).forEach(([, draw]) => draw())
+  labels.forEach((draw) => draw())
+
+  const goal = farmGoal(f).at
+  if (Math.hypot(f.x - goal.x, f.y - goal.y) > 30) guide(c, goal.x, goal.y, t)
 
   if (stick.from) {
     dot(c, stick.from.x, stick.from.y, 34, 'rgba(255,255,255,0.2)')
@@ -304,13 +395,34 @@ function paintFrame(c: Ctx, f: Farm, t: number, stick: { x: number; y: number; f
   }
 }
 
+const hudOf = (f: Farm) => ({ coins: f.coins, carry: f.carry.length, cap: carryCap(f), sold: f.sold, level: { ...f.level }, goal: farmGoal(f).say })
+const UPGRADES: Array<{ id: FarmPad; name: string; Icon: LucideIcon }> = [
+  { id: 'wheat', name: 'Wheat', Icon: Wheat },
+  { id: 'basket', name: 'Basket', Icon: ShoppingBasket },
+  { id: 'shoes', name: 'Shoes', Icon: Footprints },
+  { id: 'helper', name: 'Helpers', Icon: UserPlus },
+]
+
+function Stat({ icon, tone, label, value, children }: { icon: ReactNode; tone: string; label: string; value: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-line bg-surface-2 px-2.5 py-2 sm:px-3">
+      <span className={cn('hidden size-8 shrink-0 place-items-center rounded-xl text-white shadow-sm min-[400px]:grid [&>svg]:size-4', tone)}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-subtle">{label}</span>
+        <span key={String(value)} className="num block origin-left animate-tick font-display text-lg font-semibold leading-tight text-fg" aria-live="polite">{value}</span>
+        {children}
+      </span>
+    </div>
+  )
+}
+
 export default function FarmStand() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [save, setSave] = useLocalStorage<FarmSave | null>('osh:games:farm', null)
   const farm = useRef(newFarm(save))
   const stick = useRef({ x: 0, y: 0, from: null as null | { x: number; y: number } })
   const keys = useRef(new Set<string>())
-  const [hud, setHud] = useState({ coins: farm.current.coins, carry: 0, cap: carryCap(farm.current), sold: farm.current.sold })
+  const [hud, setHud] = useState(() => hudOf(farm.current))
 
   useEffect(() => {
     const el = canvas.current!
@@ -333,6 +445,8 @@ export default function FarmStand() {
     let shown = ''
     let painted = -1 // wheat level the ground was painted for
     let floats: Array<{ x: number; y: number; str: string; fill: string; age: number }> = [] // "+5" rising off a sale or pickup
+    let confetti: Array<{ x: number; y: number; vx: number; vy: number; col: string; age: number }> = []
+    const levelSum = (f: Farm) => Object.values(f.level).reduce((a, b) => a + b, 0)
 
     const tick = (now: number) => {
       const f = farm.current
@@ -340,11 +454,20 @@ export default function FarmStand() {
       const s = stick.current
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      const was = { coins: f.coins, till: f.till, carry: f.carry.length, paid: Object.values(f.paid).reduce((a, b) => a + b, 0) }
+      const was = { coins: f.coins, till: f.till, carry: f.carry.length, levels: levelSum(f), level: { ...f.level } }
       stepFarm(f, s.from ? s.x : +k.has('right') - +k.has('left'), s.from ? s.y : +k.has('down') - +k.has('up'), dt)
       if (f.till > was.till) floats.push({ x: SPOT.till.x, y: SPOT.till.y - 24, str: `+${f.till - was.till}`, fill: '#fff', age: 0 })
       if (f.coins > was.coins && !floats.some((p) => p.fill === '#FEF08A' && p.age < 0.25)) floats.push({ x: f.x, y: f.y - 40, str: `+${f.coins - was.coins}`, fill: '#FEF08A', age: 0 })
-      if (f.coins !== was.coins || f.carry.length !== was.carry) buzz(6)
+      if (levelSum(f) > was.levels) {
+        const id = (Object.keys(PADS) as FarmPad[]).find((p) => f.level[p] > was.level[p])!
+        floats.push({ x: PADS[id].x, y: PADS[id].y - 34, str: `${PADS[id].label}!`, fill: '#FDE68A', age: 0 })
+        for (let i = 0; i < 28; i++) {
+          const a = Math.random() * Math.PI * 2
+          const v = 60 + Math.random() * 120
+          confetti.push({ x: PADS[id].x, y: PADS[id].y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 90, col: ['#FACC15', '#F97316', '#22C55E', '#FFFFFF', '#E11D48'][i % 5], age: 0 })
+        }
+        buzz(30)
+      } else if (f.coins !== was.coins || f.carry.length !== was.carry) buzz(6)
 
       if (f.level.wheat !== painted) paintGround(gc, !!(painted = f.level.wheat))
       c.drawImage(ground, 0, 0, W, H)
@@ -354,13 +477,22 @@ export default function FarmStand() {
         c.globalAlpha = 1 - p.age / 0.9
         text(c, p.str, p.x, p.y - p.age * 30, 13, p.fill)
       }
+      confetti = confetti.filter((p) => (p.age += dt) < 1.1)
+      for (const p of confetti) {
+        p.x += p.vx * dt
+        p.y += p.vy * dt
+        p.vy += 320 * dt
+        c.globalAlpha = 1 - p.age / 1.1
+        box(c, p.x - 2, p.y - 3, 4, 6, 1, p.col)
+      }
       c.globalAlpha = 1
       box(c, 0, 0, W, H, 0, shade)
 
-      const next = `${f.coins}|${f.carry.length}|${carryCap(f)}|${f.sold}`
+      const goal = farmGoal(f).say
+      const next = `${f.coins}|${f.carry.length}|${carryCap(f)}|${f.sold}|${Object.values(f.level)}|${goal}`
       if (next !== shown) {
         shown = next
-        setHud({ coins: f.coins, carry: f.carry.length, cap: carryCap(f), sold: f.sold })
+        setHud(hudOf(f))
       }
       frame = requestAnimationFrame(tick)
     }
@@ -386,14 +518,34 @@ export default function FarmStand() {
   }
 
   return (
-    <div>
-      <ScoreBar
-        items={[{ label: 'Coins', value: hud.coins }, { label: 'Basket', value: `${hud.carry}/${hud.cap}` }, { label: 'Sold', value: hud.sold }]}
-        onNew={() => {
-          if (!window.confirm('Start over? Your coins, upgrades and helpers will be reset.')) return
-          farm.current = newFarm()
-        }}
-      />
+    <div className="mx-auto" style={{ maxWidth: W + 40 }}>
+      <div className="mb-3 flex items-stretch gap-2">
+        <Stat icon={<Coins />} tone="bg-[linear-gradient(145deg,#FDE68A,#F59E0B)] !text-amber-950" label="Coins" value={hud.coins} />
+        <Stat icon={<ShoppingBasket />} tone="bg-[linear-gradient(145deg,#4ADE80,#16A34A)]" label="Basket" value={`${hud.carry}/${hud.cap}`}>
+          <span className="mt-1 block h-1 overflow-hidden rounded-full bg-line" aria-hidden>
+            <span className={cn('block h-full rounded-full transition-[width] duration-200', hud.carry >= hud.cap ? 'bg-rose-500' : 'bg-emerald-500')} style={{ width: `${(100 * hud.carry) / hud.cap}%` }} />
+          </span>
+        </Stat>
+        <Stat icon={<PackageCheck />} tone="bg-[linear-gradient(145deg,#FDA4AF,#E11D48)]" label="Sold" value={hud.sold} />
+        <button
+          type="button"
+          aria-label="New game"
+          title="New game"
+          onClick={() => {
+            if (!window.confirm('Start over? Your coins, upgrades and helpers will be reset.')) return
+            farm.current = newFarm()
+          }}
+          className="grid w-11 shrink-0 place-items-center rounded-2xl border border-line bg-surface text-fg transition hover:bg-surface-2 active:scale-95"
+        >
+          <RotateCcw className="size-4" aria-hidden />
+        </button>
+      </div>
+
+      <p role="status" className="mb-3 flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm font-semibold text-fg">
+        <Sparkles className="size-4 shrink-0 text-amber-500" aria-hidden />
+        <span className="text-subtle">Next:</span> {hud.goal}
+      </p>
+
       <canvas
         ref={canvas}
         tabIndex={0}
@@ -421,11 +573,31 @@ export default function FarmStand() {
         }}
         onKeyUp={(e) => keys.current.delete(ARROWS[e.key])}
         onBlur={() => keys.current.clear()}
-        className="mx-auto block w-full touch-none select-none rounded-2xl shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="mx-auto block w-full touch-none select-none rounded-[20px] shadow-[0_24px_50px_-24px_rgb(22_101_52/0.65)] outline-none ring-1 ring-black/10 focus-visible:ring-2 focus-visible:ring-accent"
         style={{ maxWidth: W, aspectRatio: `${W} / ${H}` }}
       />
-      <p className="mt-3 text-center text-xs text-subtle">Drag anywhere to walk (or use the arrow keys). Stand in the field to pick, behind the stall to stock it, on the cash mat to collect coins, and on a dashed square to buy it. Hire a helper to pick and stock for you.</p>
-      <p className="mt-1 text-center text-xs text-subtle">Coins here are for this game only. They aren’t Osh coins.</p>
+
+      <ul className="mt-3 grid grid-cols-4 gap-2" aria-label="Upgrades">
+        {UPGRADES.map(({ id, name, Icon }) => {
+          const costs = PADS[id].costs
+          const lvl = hud.level[id]
+          const price = costs[lvl]
+          const affordable = price !== undefined && hud.coins >= price
+          return (
+            <li key={id} className={cn('rounded-2xl border px-2 py-2 text-center transition', affordable ? 'border-amber-400/60 bg-amber-400/10' : 'border-line bg-surface-2')}>
+              <Icon className={cn('mx-auto size-4', lvl ? 'text-emerald-500' : 'text-subtle')} aria-hidden />
+              <p className="mt-1 text-[11px] font-semibold text-fg">{name}</p>
+              <div className="mt-1 flex justify-center gap-1" aria-label={`Level ${lvl} of ${costs.length}`}>
+                {costs.map((_, i) => (
+                  <span key={i} className={cn('h-1.5 w-3 rounded-full', i < lvl ? 'bg-emerald-500' : 'bg-line')} />
+                ))}
+              </div>
+              <p className={cn('num mt-1 text-[10px] font-semibold', affordable ? 'text-amber-600' : 'text-subtle')}>{price === undefined ? 'Max' : `${price} coins`}</p>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="mt-3 text-center text-xs text-subtle">Drag anywhere or use the arrow keys to walk. Everything happens by standing on it. Coins here are for this game only, not Osh coins.</p>
     </div>
   )
 }

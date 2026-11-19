@@ -29,7 +29,7 @@ export default function MemoryMatch() {
       setUp([])
       return
     }
-    const t = setTimeout(() => setUp([]), 750)
+    const t = setTimeout(() => setUp([]), 500)
     return () => clearTimeout(t)
   }, [up, cards])
 

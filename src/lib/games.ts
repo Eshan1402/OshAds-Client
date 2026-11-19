@@ -185,7 +185,8 @@ export const PADS = {
 }
 export type FarmPad = keyof typeof PADS
 export const SHELF_CAP = 12
-export const GROW_S = 5
+export const GROW_S = 3
+export const FARM_SPEED = 160 // px/s; each pair of faster shoes adds 45
 const HELPER_CAP = 3
 
 /** The part worth keeping between visits. */
@@ -252,17 +253,32 @@ function work(f: Farm, w: Worker, cap: number, dt: number) {
   if (ripe) {
     w.carry.push(ripe.crop)
     ripe.wait = GROW_S
-    w.act = 0.12
+    w.act = 0.08
   } else if (w.carry.length && f.shelf.length < SHELF_CAP && near(w, SPOT.stall, 46)) {
     f.shelf.push(w.carry.pop()!)
-    w.act = 0.1
+    w.act = 0.07
   }
+}
+
+/** What the player should do next, and where: drives the hint line and the bouncing arrow. */
+export function farmGoal(f: Farm): { at: At; say: string } {
+  const full = f.carry.length >= carryCap(f)
+  const ripe = f.plants.find((p) => !p.wait && (p.crop === 'tomato' || f.level.wheat))
+  if (full || (f.carry.length && !ripe)) return { at: SPOT.stall, say: 'Stock the stall' }
+  if (f.till) return { at: SPOT.till, say: 'Collect your coins' }
+  const pad = (Object.keys(PADS) as FarmPad[]).find((id) => {
+    const cost = PADS[id].costs[f.level[id]]
+    return cost !== undefined && f.coins + f.paid[id] >= cost
+  })
+  if (pad) return { at: PADS[pad], say: `Buy: ${PADS[pad].label}` }
+  const field = ripe?.crop === 'wheat' ? { x: 290, y: 94 } : { x: 70, y: 94 } // middle of the plot, clear of its sign
+  return { at: field, say: f.carry.length ? 'Pick more, then stock the stall' : 'Pick ripe crops' }
 }
 
 /** Advances the farm by `dt` seconds, in place. (dx, dy) is the joystick, each from -1 to 1. */
 export function stepFarm(f: Farm, dx: number, dy: number, dt: number, rnd: Rnd = Math.random) {
   for (const p of f.plants) p.wait = Math.max(0, p.wait - dt)
-  walk(f, dx, dy, 110 + 35 * f.level.shoes, dt)
+  walk(f, dx, dy, FARM_SPEED + 45 * f.level.shoes, dt)
   work(f, f, carryCap(f), dt)
 
   // Helpers do the round on their own: to the nearest ripe crop until their arms are full, then to the stall.
@@ -271,7 +287,7 @@ export function stepFarm(f: Farm, dx: number, dy: number, dt: number, rnd: Rnd =
     const unload = h.carry.length >= HELPER_CAP || (h.carry.length > 0 && !ripe)
     const to = unload ? { x: SPOT.stall.x + (i ? 34 : -34), y: SPOT.stall.y } : (ripe ?? { x: 150 + i * 60, y: 170 })
     const d = dist(h, to)
-    walk(h, d > 4 ? (to.x - h.x) / d : 0, d > 4 ? (to.y - h.y) / d : 0, 85, dt)
+    walk(h, d > 4 ? (to.x - h.x) / d : 0, d > 4 ? (to.y - h.y) / d : 0, 125, dt)
     work(f, h, HELPER_CAP, dt)
   })
 
@@ -284,7 +300,7 @@ export function stepFarm(f: Farm, dx: number, dy: number, dt: number, rnd: Rnd =
   for (const id of Object.keys(PADS) as FarmPad[]) {
     const cost = PADS[id].costs[f.level[id]]
     if (cost === undefined || !f.coins || !near(f, PADS[id], 26)) continue
-    const pay = Math.min(f.coins, cost - f.paid[id], Math.ceil(cost * dt * 1.5))
+    const pay = Math.min(f.coins, cost - f.paid[id], Math.ceil(cost * dt * 2.5))
     f.coins -= pay
     f.paid[id] += pay
     if (f.paid[id] < cost) continue
@@ -297,19 +313,19 @@ export function stepFarm(f: Farm, dx: number, dy: number, dt: number, rnd: Rnd =
   const slot = SPOT.queue.findIndex((_, i) => !f.buyers.some((b) => b.slot === i && !b.leaving))
   if (f.nextBuyer <= 0 && slot >= 0) {
     f.buyers.push({ x: SPOT.queue[slot].x, y: FARM_H + 20, slot, look: Math.floor(rnd() * 997), want: 1 + Math.floor(rnd() * 3), got: 0, owe: 0, cool: 0, leaving: false })
-    f.nextBuyer = 2 + rnd() * 3
+    f.nextBuyer = 1 + rnd() * 2
   }
   for (const b of f.buyers) {
     const goal = b.leaving ? FARM_H + 40 : SPOT.queue[b.slot].y
-    if (Math.abs(goal - b.y) > 70 * dt) {
-      b.y += Math.sign(goal - b.y) * 70 * dt
+    if (Math.abs(goal - b.y) > 120 * dt) {
+      b.y += Math.sign(goal - b.y) * 120 * dt
       continue
     }
     b.y = goal
     b.cool -= dt
     if (b.leaving || b.cool > 0 || !f.shelf.length) continue
     b.owe += CROP_PRICE[f.shelf.shift()!]
-    b.cool = 0.35
+    b.cool = 0.2
     if (++b.got >= b.want) {
       // Paid in full: the money lands on the mat and the customer walks off beside the queue.
       f.till += b.owe

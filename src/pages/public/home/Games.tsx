@@ -8,13 +8,13 @@ import { Eyebrow, SplitReveal } from '@/components/motion/SplitReveal'
 
 // Each game is its own chunk: only the one being played is downloaded and running.
 const GAMES: Array<{ id: string; name: string; blurb: string; icon: ReactNode; Comp: React.LazyExoticComponent<() => ReactNode> }> = [
-  { id: 'wordsearch', name: 'Word Search', blurb: 'Find the hidden words', icon: <Search />, Comp: lazy(() => import('@/components/games/WordSearch')) },
-  { id: 'colorsort', name: 'Color Sort', blurb: 'One colour per tube', icon: <FlaskConical />, Comp: lazy(() => import('@/components/games/ColorSort')) },
-  { id: 'blocks', name: 'Block Puzzle', blurb: 'Fill rows, clear lines', icon: <Blocks />, Comp: lazy(() => import('@/components/games/BlockPuzzle')) },
-  { id: 'bubbles', name: 'Bubble Shooter', blurb: 'Match three to pop', icon: <CircleDot />, Comp: lazy(() => import('@/components/games/BubbleShooter')) },
-  { id: 'snake', name: 'Snake', blurb: 'Eat, grow, don’t crash', icon: <Worm />, Comp: lazy(() => import('@/components/games/Snake')) },
   { id: 'farm', name: 'Farm Stand', blurb: 'Pick, sell and grow your farm', icon: <Wheat />, Comp: lazy(() => import('@/components/games/FarmStand')) },
   { id: 'memory', name: 'Memory Match', blurb: 'Pair the app logos', icon: <Brain />, Comp: lazy(() => import('@/components/games/MemoryMatch')) },
+  { id: 'wordsearch', name: 'Word Search', blurb: 'Find the hidden words', icon: <Search />, Comp: lazy(() => import('@/components/games/WordSearch')) },
+  { id: 'bubbles', name: 'Bubble Shooter', blurb: 'Match three to pop', icon: <CircleDot />, Comp: lazy(() => import('@/components/games/BubbleShooter')) },
+  { id: 'snake', name: 'Snake', blurb: 'Eat, grow, don’t crash', icon: <Worm />, Comp: lazy(() => import('@/components/games/Snake')) },
+  { id: 'colorsort', name: 'Color Sort', blurb: 'One colour per tube', icon: <FlaskConical />, Comp: lazy(() => import('@/components/games/ColorSort')) },
+  { id: 'blocks', name: 'Block Puzzle', blurb: 'Fill rows, clear lines', icon: <Blocks />, Comp: lazy(() => import('@/components/games/BlockPuzzle')) },
 ]
 
 export function GamesSection() {

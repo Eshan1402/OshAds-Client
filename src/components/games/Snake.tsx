@@ -5,7 +5,7 @@ import { cn } from '@/utils/cn'
 import { ARROWS, buzz, ScoreBar, useBest, useSwipe } from './shared'
 
 const SIZE = 16
-const TICK_MS = 120
+const TICK_MS = 95
 const OPPOSITE: Record<Dir, Dir> = { left: 'right', right: 'left', up: 'down', down: 'up' }
 const HEADING: Record<Dir, number> = { right: 0, down: 90, left: 180, up: 270 }
 const start = () => {

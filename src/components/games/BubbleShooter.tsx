@@ -10,7 +10,7 @@ const W = COLS * 2 * R
 const H = Math.round(R + (ROWS - 1) * ROW_H + 4 * R)
 const GUN = { x: W / 2, y: H - R - 4 }
 const COLORS = PIECE_COLORS.slice(0, 5)
-const SPEED = 10
+const SPEED = 16
 const MISSES_PER_DROP = 6 // shots that pop nothing before two new rows push in
 
 const randomColor = () => Math.floor(Math.random() * COLORS.length)
