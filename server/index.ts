@@ -12,6 +12,7 @@
  *   Staff    GET  /api/db                     everything the dashboard needs (signed in)
  *            PUT  /api/docs/:kind/:id         save a document (?create=1 refuses to overwrite)
  *            GET  /api/stats?from&to          traffic counts (analytics:read, or Bearer STATS_TOKEN)
+ *            /api/db and /api/analytics also take Bearer STATS_TOKEN: read-only access for the growth tools
  *            GET  /api/analytics?from&to[&hourly=1][&scope=app|client|campaign&id]   every dashboard number
  *            GET  /api/live | /api/health     visitors in the last 5 minutes · service checks
  *            GET  /api/admin/rewards?status   POST /api/admin/rewards/:id/confirm|reject   (campaigns:write)
@@ -283,7 +284,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (method === 'GET' && pathname === '/api/auth/session') return send(res, 200, requireUser(req))
 
   if (method === 'GET' && pathname === '/api/db') {
-    requireUser(req, 'analytics:read')
+    if (!bearerOk(req)) requireUser(req, 'analytics:read')
     return send(res, 200, { ...Object.fromEntries(KINDS.map((k) => [k, allDocs(k)])), apps: withTrending(allDocs<MobileApp>('apps')), campaigns: liveCampaigns() })
   }
 
@@ -317,7 +318,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   }
 
   if (method === 'GET' && pathname === '/api/analytics') {
-    requireUser(req, 'analytics:read')
+    if (!bearerOk(req)) requireUser(req, 'analytics:read')
     const p = url.searchParams
     const today = new Date().toISOString().slice(0, 10)
     let from = isoDay(p.get('from')) ?? today

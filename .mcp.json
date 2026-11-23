@@ -2,7 +2,16 @@
   "mcpServers": {
     "oshads-growth": {
       "command": "npx",
-      "args": ["tsx", "--tsconfig", "growth/tsconfig.json", "growth/mcp/server.ts"]
+      "args": [
+        "tsx",
+        "--tsconfig",
+        "growth/tsconfig.json",
+        "growth/mcp/server.ts"
+      ],
+      "env": {
+        "OSHADS_API_URL": "${OSHADS_API_URL:-}",
+        "OSHADS_API_TOKEN": "${OSHADS_API_TOKEN:-}"
+      }
     }
   }
 }

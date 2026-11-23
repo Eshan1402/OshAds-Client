@@ -11,7 +11,7 @@ Three traffic engines share one core (`growth/core/` + `src/lib/recommend.ts`):
 
 **Safety by design:** Claude (connector, plugin or agent) can read data and create drafts. Only a person approves (`npm run social:review`), and only approved items are published (`npm run social:publish`).
 
-Data: the demo dataset is used until you set `OSHADS_API_URL` (and `OSHADS_API_TOKEN`) to the live OshAds API — see `growth/core/data.ts` for the expected endpoints.
+Data: the demo dataset is used until you set `OSHADS_API_URL` (and `OSHADS_API_TOKEN`) to the live OshAds API — the site address (e.g. `https://click.oshads.com`) and the server's `STATS_TOKEN`. See `growth/core/data.ts`.
 
 ---
 

@@ -1,11 +1,13 @@
 # Runs the app behind Caddy, which gets a free auto-renewing HTTPS cert for click.oshads.com.
-# Deploy:  SEED_PASSWORD in a .env file next to this, DNS pointing at the Droplet, then: docker compose up -d --build
+# Deploy:  SEED_PASSWORD, POSTBACK_KEY and STATS_TOKEN (16+ random characters each) in a .env file next to this, DNS pointing at the Droplet, then: docker compose up -d --build
 services:
   app:
     build: .
     restart: unless-stopped
     environment:
       - SEED_PASSWORD=${SEED_PASSWORD}
+      - POSTBACK_KEY=${POSTBACK_KEY} # advertisers' install postbacks are refused without it
+      - STATS_TOKEN=${STATS_TOKEN} # read-only key for the Claude growth tools
       - SITE_URL=https://click.oshads.com
       - TRUST_PROXY=1
     volumes:
