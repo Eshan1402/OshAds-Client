@@ -143,13 +143,26 @@ function withTrending(apps: MobileApp[]) {
   const trends = appTrends()
   const score = (a: MobileApp) => trends.get(a.id)?.score ?? 0
   const rank = new Map(apps.filter((a) => a.status === 'live').sort((a, b) => score(b) - score(a)).map((a, i) => [a.id, i + 1]))
-  // Worked out on every load, so a campaign that ends, is paused or spends its budget unfeatures its app with no manual step.
-  const promoted = new Set(liveCampaigns().filter((c) => campaignRunning(c)).map((c) => c.appId))
+  // A campaign that ends, is paused or spends its budget unfeatures its app with no manual step.
+  // Status and dates are checked first; only capped campaigns need their spend, which means scanning their traffic.
+  const promoted = new Set(
+    allDocs<Campaign>('campaigns')
+      .filter((c) => campaignRunning({ ...c, spent: 0 }))
+      .filter((c) => c.budget <= 0 || campaignRunning({ ...c, ...campaignStats(c) }))
+      .map((c) => c.appId),
+  )
   return apps.map((a) => ({
     ...a,
     ...(rank.has(a.id) && { trendingRank: rank.get(a.id), weeklyGrowth: trends.get(a.id)?.growth ?? 0 }),
     promoted: promoted.has(a.id),
   }))
+}
+
+/** The public catalogue, rebuilt at most every 30 s and right after any save: building it scans recent traffic. */
+let catalogueCache: { at: number; apps: MobileApp[] } | null = null
+function catalogue() {
+  if (!catalogueCache || Date.now() - catalogueCache.at > 30_000) catalogueCache = { at: Date.now(), apps: withTrending(allDocs<MobileApp>('apps')) }
+  return catalogueCache.apps
 }
 
 // Per-IP, per-minute caps on the public endpoints. Generous because mobile carriers put many people behind one IP.
@@ -221,7 +234,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   }
 
   if (method === 'GET' && pathname === '/api/public') {
-    const apps = withTrending(allDocs<MobileApp>('apps')).filter((a) => a.status === 'live')
+    const apps = catalogue().filter((a) => a.status === 'live')
     const clients = allDocs<Client>('clients').map((c) => ({ id: c.id, name: c.name }))
     return send(res, 200, { apps, clients })
   }
@@ -231,7 +244,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (method === 'GET' && pathname === '/api/recommendations') {
     const p = url.searchParams
     const limit = Math.min(24, Math.max(1, Number(p.get('limit')) || 8))
-    const picks = recommend(withTrending(allDocs<MobileApp>('apps')), allDocs<Campaign>('campaigns'), {
+    const picks = recommend(catalogue(), allDocs<Campaign>('campaigns'), {
       interests: list(p.get('interests'), 12) as CategorySlug[],
       viewed: list(p.get('viewed'), 20),
     }, limit)
@@ -307,6 +320,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
       if (link !== undefined && link !== '' && !isWebUrl(link)) throw new HttpError(400, 'Tracking URL must be a web address starting with https://')
     }
     if (putDoc(kind, doc, url.searchParams.get('create') === '1') === 'exists') throw new HttpError(409, 'That ID is already taken. Try again.')
+    catalogueCache = null // a saved app or campaign shows on the site straight away
     return send(res, 200, doc)
   }
 
@@ -377,6 +391,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (method === 'POST' && pathname === '/api/admin/reset') {
     requireUser(req, 'settings:manage')
     seedDocs(true)
+    catalogueCache = null
     return send(res, 204)
   }
 
