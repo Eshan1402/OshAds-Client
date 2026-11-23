@@ -12,7 +12,7 @@ export function PublicFooter() {
     <footer className="border-t border-line bg-surface/40 backdrop-blur-xl">
       <div ref={cols} className="container-page grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div data-reveal>
-          <Logo tagline />
+          <Logo className="h-14" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
             Driven by results. OshAds helps people discover apps worth installing — and helps great apps find the people who will love them.
           </p>

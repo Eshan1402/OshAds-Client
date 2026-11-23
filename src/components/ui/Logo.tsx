@@ -19,28 +19,13 @@ export function LogoMark({ className, title }: { className?: string; title?: str
   )
 }
 
-/**
- * Wordmark: ring "O" + "shAds". The A's crossbar band is painted blue, echoing the
- * blue slash through the A in the logo. Optional "Driven by results" tagline.
- */
-export function Logo({ className, compact, tagline }: { className?: string; compact?: boolean; tagline?: boolean }) {
+/** The OshAds logo image with its tagline; a light-text copy shows in dark mode. */
+export function Logo({ className, compact }: { className?: string; compact?: boolean }) {
   if (compact) return <LogoMark className={cn('size-9', className)} title="OshAds" />
   return (
-    <span className={cn('inline-flex flex-col', className)} aria-label="OshAds">
-      <span className="inline-flex items-center gap-[2px] leading-none" aria-hidden>
-        <LogoMark className="size-[30px]" />
-        <span className="font-display text-[26px] font-extrabold tracking-[-0.04em] text-fg">
-          sh
-          <span
-            className="bg-clip-text text-transparent [-webkit-background-clip:text]"
-            style={{ backgroundImage: 'linear-gradient(to bottom, var(--fg) 0%, var(--fg) 54%, var(--logo) 54%, var(--logo) 70%, var(--fg) 70%)' }}
-          >
-            A
-          </span>
-          ds
-        </span>
-      </span>
-      {tagline && <span className="mt-1 pl-[34px] font-mono text-[10px] font-medium tracking-[0.08em] text-muted">Driven by results</span>}
+    <span className={cn('inline-flex h-10 shrink-0', className)}>
+      <img src="/brand/oshads-logo.png" alt="OshAds — Driven by results" className="h-full w-auto dark:hidden" />
+      <img src="/brand/oshads-logo-dark.png" alt="OshAds — Driven by results" className="hidden h-full w-auto dark:block" />
     </span>
   )
 }
