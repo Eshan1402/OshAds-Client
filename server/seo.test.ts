@@ -56,7 +56,16 @@ test('app pages use a hosted logo as the link-preview image, never an inline dat
   const hosted = renderPage(shell, pageFor(`/app/${app.slug}`, [{ ...app, iconImage: '/logos/x.png' }]))
   assert.match(hosted, /og:image" content="https:\/\/[^"]+\/logos\/x\.png"/)
   const inline = renderPage(shell, pageFor(`/app/${app.slug}`, [{ ...app, iconImage: 'data:image/png;base64,AAAA' }]))
-  assert.ok(!inline.includes('og:image'))
+  assert.ok(!inline.includes('data:image'), 'inline image leaked into og:image')
+  assert.match(inline, /og:image" content="https:\/\/[^"]+\/og-image\.png"/) // falls back to the site image
+})
+
+test('pages without their own image get the 1200x630 site image; 404s have no canonical', () => {
+  const home = renderPage(shell, pageFor('/', apps))
+  assert.match(home, /og:image" content="https:\/\/[^"]+\/og-image\.png"/)
+  assert.match(home, /twitter:card" content="summary_large_image"/)
+  assert.ok(!renderPage(shell, pageFor('/nope', apps)).includes('rel="canonical"'))
+  assert.ok(pageFor('/about', apps).body.length > 400, 'about page has real text for crawlers')
 })
 
 test('every link inside a blog post points to a page that exists, and crawlers get it as a real link', () => {

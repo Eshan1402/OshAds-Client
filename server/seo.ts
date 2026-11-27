@@ -43,8 +43,28 @@ const STATIC: Record<string, Omit<Page, 'path' | 'status' | 'jsonLd' | 'body'> &
   '/trending': { title: `Trending apps this week · ${NAME}`, h1: 'Trending apps this week', description: 'The apps OshAds visitors are viewing and installing most this week.', body: (apps) => list([...apps].sort((a, b) => (a.trendingRank ?? 999) - (b.trendingRank ?? 999)).slice(0, 20).map(appItem)) },
   '/categories': { title: `App categories · ${NAME}`, h1: 'App categories', description: 'Find apps by category: small loans, banking, trading, crypto, insurance, shopping, food and more.', body: () => list(categories.map((c) => `${link(`/categories/${c.slug}`, c.name)}: ${esc(c.description)}`)) },
   '/blog': { title: `Guides and tips · ${NAME}`, h1: 'Guides and tips', description: 'Plain-language guides on staying safe with apps, borrowing and money apps, and getting more from your phone.', body: () => list(posts.map((p) => `${link(`/blog/${p.slug}`, p.title)}: ${esc(p.excerpt)}`)) },
-  '/about': { title: `About · ${NAME}`, h1: 'About OshAds', description: 'OshAds helps people discover apps worth installing and helps good apps find the people who will love them. Driven by results.' },
-  '/rewards': { title: `Rewards · ${NAME}`, h1: 'Earn Osh coins', description: 'Install apps marked with a reward from their official store and earn Osh coins. No account needed.' },
+  '/about': {
+    title: `About · ${NAME}`,
+    h1: 'About OshAds',
+    description: 'OshAds helps people discover apps worth installing and helps good apps find the people who will love them. Driven by results.',
+    body: () =>
+      `<h2>For people looking for apps</h2>${list([
+        'Every app is tested by our team for quality, privacy practices and honest marketing before it appears on OshAds.',
+        'Every link opens the lender’s own website, App Store or Google Play listing. We never host app files or ask for credentials.',
+        'Personalisation runs on your device. No account, no cross-site tracking, no selling of personal data.',
+      ].map(esc))}<h2>For app makers</h2><p>${esc('Launch install, engagement and reactivation campaigns on CPI, CPA or CPC models with fraud filtering built in. Users arrive looking for apps, not interrupted by them, with live reporting on impressions, clicks, installs and conversion by campaign, country and device, and postbacks to AppsFlyer, Adjust, Branch, Singular and more.')}</p><p>${link('/explore', 'Explore apps')} · ${link('/blog', 'Read our guides')}</p>`,
+  },
+  '/rewards': {
+    title: `Rewards · ${NAME}`,
+    h1: 'Earn Osh coins',
+    description: 'Install apps marked with a reward from their official store and earn Osh coins. No account needed.',
+    body: (apps) =>
+      `<h2>How it works</h2>${list([
+        'Find an app marked with a reward and open it from OshAds.',
+        'Install it from its official store. Your coins show as waiting until the install is confirmed.',
+        'Swap your coins for coupons. Your balance is kept until then.',
+      ].map(esc))}<p>${esc('Your wallet is saved in this browser. Clearing site data or switching device starts a new wallet.')}</p><h2>Apps with rewards</h2>${list(apps.filter((a) => a.reward).slice(0, 30).map(appItem))}`,
+  },
   '/search': { title: `Search apps · ${NAME}`, h1: 'Search apps', description: DEFAULT_DESC, noindex: true },
   '/login': { title: `Sign in · ${NAME}`, h1: 'Sign in', description: DEFAULT_DESC, noindex: true },
 }
@@ -130,15 +150,16 @@ export function pageFor(rawPath: string, apps: MobileApp[]): Page {
 export function renderPage(indexHtml: string, page: Page) {
   const url = SITE + page.path
   const head = [
-    `<link rel="canonical" href="${esc(url)}" />`,
+    page.status === 200 ? `<link rel="canonical" href="${esc(url)}" />` : '',
     page.noindex ? '<meta name="robots" content="noindex, follow" />' : '',
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${NAME}" />`,
     `<meta property="og:title" content="${esc(page.title)}" />`,
     `<meta property="og:description" content="${esc(page.description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
-    page.image ? `<meta property="og:image" content="${esc(page.image)}" />` : '',
+    `<meta name="twitter:card" content="${page.image ? 'summary' : 'summary_large_image'}" />`,
+    `<meta property="og:image" content="${esc(page.image ?? `${SITE}/og-image.png`)}" />`,
+    page.image ? '' : '<meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" />',
     ...page.jsonLd.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`),
   ].filter(Boolean)
   return indexHtml
