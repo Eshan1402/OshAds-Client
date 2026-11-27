@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { apps } from '../src/data/apps'
 import { posts } from '../src/data/posts'
+import { categoryGuides } from '../src/data/categoryGuides'
 import { llmsTxt, pageFor, renderPage, sitemapXml } from './seo'
 
 const shell = '<html><head><title>x</title><meta name="description" content="x" /></head><body><div id="root"></div></body></html>'
@@ -59,7 +60,7 @@ test('app pages use a hosted logo as the link-preview image, never an inline dat
 })
 
 test('every link inside a blog post points to a page that exists, and crawlers get it as a real link', () => {
-  for (const p of posts) {
+  for (const p of [...posts, ...Object.entries(categoryGuides).map(([slug, body]) => ({ slug: `guide:${slug}`, body: body! }))]) {
     for (const [, href] of p.body.matchAll(/\]\((\/[^)\s]*)\)/g)) {
       const path = href.split('#')[0] || '/'
       assert.equal(pageFor(path, apps).status, 200, `${p.slug} links to missing page ${href}`)

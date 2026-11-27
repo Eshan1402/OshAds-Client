@@ -61,11 +61,10 @@ export function RotatingWord({ words, interval = 2800, className }: { words: str
   const word = words[index]
   return (
     <span className={cn('relative inline-grid align-baseline', className)} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      {/* Every word laid out invisibly in the same cell, so the width never jumps. */}
+      {/* Every word laid out invisibly in the same cell, so the width never jumps. Drawn by CSS, so the
+          words aren't page text and the heading crawlers read stays "Earn rewards." */}
       {words.map((w) => (
-        <span key={w} className="invisible col-start-1 row-start-1 whitespace-nowrap pr-[0.12em]" aria-hidden>
-          {w}
-        </span>
+        <span key={w} data-w={w} className="invisible col-start-1 row-start-1 whitespace-nowrap pr-[0.12em] before:content-[attr(data-w)]" aria-hidden />
       ))}
       <span className="relative col-start-1 row-start-1 justify-self-start whitespace-nowrap" aria-hidden>
         <AnimatePresence mode="wait" initial={false}>

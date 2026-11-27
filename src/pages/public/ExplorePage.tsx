@@ -17,6 +17,8 @@ import { EmptyState, ErrorState } from '@/components/ui/Feedback'
 import { Input, Select } from '@/components/ui/Form'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PageTransition } from '@/components/layout/PageTransition'
+import { Markdown } from '@/components/content/Markdown'
+import { categoryGuides } from '@/data/categoryGuides'
 
 const PAGE = 12
 
@@ -169,6 +171,11 @@ export default function ExplorePage({ fixedCategory }: { fixedCategory?: Categor
           </>
         )}
       </section>
+      {fixedCategory && categoryGuides[fixedCategory] && (
+        <section className="container-page pb-20" aria-label={`Guide to ${categoryBySlug[fixedCategory].name} apps`}>
+          <Markdown text={categoryGuides[fixedCategory]!} className="max-w-2xl border-t border-line pt-10" />
+        </section>
+      )}
     </PageTransition>
   )
 }

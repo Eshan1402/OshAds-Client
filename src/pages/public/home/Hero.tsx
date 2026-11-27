@@ -49,6 +49,7 @@ export function Hero() {
         <motion.span className="shrink-0" initial={reduced ? false : { scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.75 + i * 0.12 }}>
           {picture}
         </motion.span>
+        {' ' /* keeps the lines apart in the heading text crawlers read; whitespace-only flex items don't render */}
       </motion.span>
     </span>
   )

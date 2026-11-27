@@ -5,6 +5,7 @@
  */
 import { categories, categoryBySlug } from '../src/data/categories'
 import { posts } from '../src/data/posts'
+import { categoryGuides } from '../src/data/categoryGuides'
 import type { MobileApp } from '../src/types'
 
 const SITE = (process.env.SITE_URL ?? 'https://click.oshads.com').replace(/\/$/, '')
@@ -84,7 +85,7 @@ export function pageFor(rawPath: string, apps: MobileApp[]): Page {
       title: `${cat.name} apps · ${NAME}`,
       h1: `${cat.name} apps`,
       description: clip(`${inCat.length} ${cat.name.toLowerCase()} apps on OshAds. ${cat.description}`),
-      body: `<p>${esc(cat.description)}</p>${list(inCat.map(appItem))}`,
+      body: `<p>${esc(cat.description)}</p>${list(inCat.map(appItem))}${categoryGuides[cat.slug] ? markdown(categoryGuides[cat.slug]!) : ''}`,
       jsonLd: [crumbs([['Home', '/'], ['Categories', '/categories'], [cat.name, path]])],
     }
   }

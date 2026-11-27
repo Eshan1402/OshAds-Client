@@ -305,7 +305,23 @@ A real company has a privacy policy with a working contact address. If the link 
 
 ## If something feels wrong
 
-Don't install it. If you've already installed it and shared any banking details, contact your bank straight away. In India you can also call the cyber crime helpline on 1930 or report at cybercrime.gov.in.`,
+Don't install it. If you've already installed it and shared any banking details, contact your bank straight away. In India you can also call the cyber crime helpline on 1930 or report at cybercrime.gov.in.
+
+## 6. Check downloads and the last update
+
+A popular, well-maintained app usually has a large number of downloads and has been updated in the last few months. A brand-new app with a famous name and very few downloads is often a copy.
+
+## Extra checks for money apps
+
+Loan, banking, trading and crypto apps handle your money, so check one more thing: the company behind the app should be licensed by your country's financial regulator. Search the company name on the regulator's website. Our guides to [loan apps](/categories/loans), [trading apps](/categories/trading) and [crypto apps](/categories/crypto) explain what to look for in each.
+
+## Frequently asked questions
+
+Is every app in the Play Store or App Store safe? Stores check apps and remove harmful ones, but some get through for a while. The official store is the safest place to start, not a guarantee, so still run the checks above.
+
+Should I install apps from links in messages? No. Links in WhatsApp, Telegram or SMS that download an APK file skip the store's checks. If an app is real, you can find it in the official store yourself.
+
+What if I already installed a suspicious app? Uninstall it, check your bank and UPI apps for anything unusual, and change any passwords you typed into it. Read about [fake delivery texts](/blog/fake-delivery-text-scam), one of the most common ways these apps arrive.`,
   },
   {
     slug: 'which-app-permissions-to-allow',
@@ -335,7 +351,24 @@ Don't install it. If you've already installed it and shared any banking details,
 - Deny first. If a feature needs a permission, the app will ask again when you use it.
 - Review old apps now and then in your phone's settings, under Privacy or Permissions.
 
-If an app refuses to work at all unless you allow something unrelated to what it does, that's a good reason to remove it.`,
+If an app refuses to work at all unless you allow something unrelated to what it does, that's a good reason to remove it.
+
+## How to check and change permissions later
+
+- Android: open Settings, then Apps, choose the app, then Permissions. Many phones also have a Privacy dashboard that shows which apps used the camera, microphone or location recently.
+- iPhone: open Settings, then Privacy & Security, and choose a permission such as Location or Photos to see which apps have it.
+
+## Permissions money apps should never need
+
+A loan, banking or payment app has no reason to read your contacts, photos or call logs, or to take accessibility control of your screen. Scam loan apps use contacts and photos to pressure borrowers. Read the [7 warning signs of a fake loan app](/blog/warning-signs-fake-loan-app).
+
+## Frequently asked questions
+
+Is it safe to give an app my location? Yes, for apps that clearly need it, such as maps, delivery or ride apps. Choose "While using the app" so it can't track you in the background.
+
+Why does a game want access to my files? Some games save data or let you share screenshots, but most don't need broad file access. Deny it and see if the game still works.
+
+What is accessibility access and why is it risky? It lets an app read what's on your screen and tap for you. It's meant for people who need assistive tools. Malicious apps abuse it to read one-time passwords, so only allow it for apps you fully trust.`,
   },
   {
     slug: 'warning-signs-fake-loan-app',
@@ -360,6 +393,18 @@ If an app refuses to work at all unless you allow something unrelated to what it
 Check the lender's name on the RBI website before you borrow. Read [what to check before taking a loan on your phone](/blog/before-instant-loan-checklist) too.
 
 If you're being threatened or harassed, keep the messages as evidence and report it on 1930 or at cybercrime.gov.in. You can also tell your local police.
+
+## How fake loan apps trap people
+
+The pattern is usually the same: a fast "approval", a small loan with a large amount deducted as fees, a very short repayment period, and then threats when the payment is late, often aimed at the borrower's family and friends. Some apps keep demanding money even after the loan is repaid.
+
+## Frequently asked questions
+
+How do I know a loan app is genuine? It names the licensed lender, shows the full cost before you accept, doesn't ask for contacts or photos, and comes from the official app store. In India, see [what a real lender must show you under RBI rules](/blog/rbi-digital-lending-rules-loan-apps).
+
+What should I do if a loan app is harassing me? Don't pay anything extra out of fear. Keep screenshots of every message, report it on 1930 or at cybercrime.gov.in, tell your local police, and warn your contacts not to respond.
+
+Where can I find loan apps from licensed lenders? Our [small loans category](/categories/loans) links to each app's official store page. Always check the lender yourself before you borrow.
 
 This article is general information, not financial advice.`,
   },
@@ -391,6 +436,26 @@ Find the name of the bank or NBFC on the loan agreement, not just the app's bran
 
 Short-term loans are often expensive. Before you borrow, check whether the amount fits your next month's budget with room to spare. Taking one loan to repay another is usually how debt gets out of control.
 
+## A quick example
+
+Here's why the total cost matters more than the headline rate. Suppose an app approves a loan of 10,000 but deducts a 2,000 processing fee, so 8,000 reaches your account. If you must repay 10,500 in 30 days, you're paying 2,500 to borrow 8,000 for a month. That's over 30% in a single month, far more than the interest rate on the screen suggests. (These numbers are only an illustration.)
+
+## Signs you can afford it
+
+- The repayment fits next month's budget after rent, bills and food.
+- You aren't borrowing to repay another loan.
+- You have a plan if your income is late.
+
+## Frequently asked questions
+
+What is APR? The annual percentage rate: the yearly cost of the loan including fees, not just interest. It's the best single number for comparing loans.
+
+Can I repay a loan early? Many lenders allow it, sometimes with a fee. Check the agreement before you sign.
+
+What happens if I miss a payment? You'll usually pay a late fee, and the missed payment may be reported to credit bureaus. Contact the lender before the due date if you're struggling.
+
+Where do I compare loan apps? Start with our [small loans category](/categories/loans) and the [7 warning signs of a fake loan app](/blog/warning-signs-fake-loan-app).
+
 This article is general information, not financial advice. Terms differ between lenders, so always confirm them with the lender directly.`,
   },
   {
@@ -419,6 +484,26 @@ Forwarded videos and images pile up quickly. WhatsApp has a storage tool under S
 
 Copy photos to a cloud service or a computer. Check they've arrived safely before you delete anything from the phone.
 
+Looking for lighter apps to replace the heavy ones? [Explore apps on OshAds](/explore).
+
+## Let your phone tidy itself
+
+- iPhone: turn on Offload Unused Apps (Settings, then App Store). It removes apps you don't use but keeps their data, so you can reinstall them later.
+- Android: the Files by Google app has a Clean tab that finds duplicates, large files and junk.
+- Google Photos and iCloud Photos can remove the full-size copies from your phone after they're safely backed up.
+
+## Play games without installing them
+
+Games are often among the largest apps on a phone. If you just want a quick break, [free browser games](/blog/free-games-no-download) need no storage at all.
+
+## Frequently asked questions
+
+Will clearing cache delete my data? Clearing an app's cache removes temporary files, not your account or messages. Clearing storage or data does reset the app, so be careful with that option.
+
+Why is "System" or "Other" using so much space? It includes the operating system, caches and temporary files. Restarting your phone and installing updates often shrinks it.
+
+Is it safe to use storage-cleaner apps? Your phone's built-in tools and well-known apps from the official store are enough. Avoid cleaner apps that ask for broad permissions or show lots of ads.
+
 Looking for lighter apps to replace the heavy ones? [Explore apps on OshAds](/explore).`,
   },
   {
@@ -444,6 +529,22 @@ Each bottle holds four units. You can pour only onto the same colour or into an 
 
 Some random deals are harder than others, and a few may have no solution. If the game says no moves are left, tap New game and try again.
 
+## A simple plan for every level
+
+- First, make every pour that lands on a matching colour.
+- Next, use an empty bottle to free the colour that's buried under the fewest others.
+- Finish one bottle completely before starting the next. A completed bottle is out of the way for good.
+
+## Frequently asked questions
+
+Is Color Sort free? Yes. It runs in your browser on OshAds with no download and no sign-up.
+
+Does every level have a solution? Most do, but random deals can occasionally be impossible. Start a new game if you're truly stuck.
+
+How is the score counted? Your best result is the fewest moves to finish, saved in your browser.
+
+Want more quick games? See our list of [free games with no download](/blog/free-games-no-download).
+
 [Play Color Sort](/#games)`,
   },
   {
@@ -461,6 +562,20 @@ Some random deals are harder than others, and a few may have no solution. If the
 - Look at all three pieces first. The order you place them in matters as much as where.
 - Clear several lines at once. Points grow quickly with each extra line, so two lines together score more than two lines separately.
 - Don't rush single clears. If the board is mostly empty, set up a bigger clear instead.
+
+## Common mistakes
+
+- Filling the middle of the board first, which splits the open space into small pockets.
+- Leaving single-cell holes that only the smallest piece can fill.
+- Placing a long line piece across the board when it could sit along an edge.
+
+## Frequently asked questions
+
+Can you rotate pieces? No. Pieces are placed as shown, which is why planning the order of all three matters.
+
+When does the game end? When none of your three remaining pieces fits anywhere on the board.
+
+Where can I play? Block Puzzle runs free in your browser on OshAds, with no download. See our list of [free browser games](/blog/free-games-no-download).
 
 [Play Block Puzzle](/#games)`,
   },
