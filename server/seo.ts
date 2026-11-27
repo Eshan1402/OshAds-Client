@@ -23,6 +23,8 @@ const crumbs = (trail: Array<[string, string]>) => ({
   '@type': 'BreadcrumbList',
   itemListElement: trail.map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: SITE + path })),
 })
+/** Escaped text with the blog's internal `[text](/path)` links turned into real links crawlers can follow. */
+const inline = (s: string) => esc(s).replace(/\[([^\]]+)\]\((\/[^)\s]*)\)/g, '<a href="$2">$1</a>')
 /** The blog's light markdown (## headings, blank-line paragraphs, - lists) as safe HTML. */
 const markdown = (md: string) =>
   md
@@ -30,8 +32,8 @@ const markdown = (md: string) =>
     .split(/\n\s*\n/)
     .map((block) => {
       if (block.startsWith('## ')) return `<h2>${esc(block.slice(3))}</h2>`
-      if (/^- /m.test(block) && block.split('\n').every((l) => l.startsWith('- '))) return list(block.split('\n').map((l) => esc(l.slice(2))))
-      return `<p>${esc(block.replace(/\n/g, ' '))}</p>`
+      if (/^- /m.test(block) && block.split('\n').every((l) => l.startsWith('- '))) return list(block.split('\n').map((l) => inline(l.slice(2))))
+      return `<p>${inline(block.replace(/\n/g, ' '))}</p>`
     })
     .join('')
 

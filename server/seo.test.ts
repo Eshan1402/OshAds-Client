@@ -57,3 +57,14 @@ test('app pages use a hosted logo as the link-preview image, never an inline dat
   const inline = renderPage(shell, pageFor(`/app/${app.slug}`, [{ ...app, iconImage: 'data:image/png;base64,AAAA' }]))
   assert.ok(!inline.includes('og:image'))
 })
+
+test('every link inside a blog post points to a page that exists, and crawlers get it as a real link', () => {
+  for (const p of posts) {
+    for (const [, href] of p.body.matchAll(/\]\((\/[^)\s]*)\)/g)) {
+      const path = href.split('#')[0] || '/'
+      assert.equal(pageFor(path, apps).status, 200, `${p.slug} links to missing page ${href}`)
+    }
+  }
+  const linked = posts.find((p) => p.body.includes('](/'))!
+  assert.match(renderPage(shell, pageFor(`/blog/${linked.slug}`, apps)), /<a href="\/[^"]*">/)
+})
