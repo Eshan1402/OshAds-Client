@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { apps } from '../src/data/apps'
 import { posts } from '../src/data/posts'
-import { llmsTxt, pageFor, renderPage } from './seo'
+import { llmsTxt, pageFor, renderPage, sitemapXml } from './seo'
 
 const shell = '<html><head><title>x</title><meta name="description" content="x" /></head><body><div id="root"></div></body></html>'
 const app = apps[0]
@@ -41,4 +41,19 @@ test('llms.txt lists categories, guides and live apps', () => {
   assert.match(txt, /^# OshAds/)
   assert.ok(txt.includes(`/app/${app.slug}`))
   assert.ok(txt.includes(`/blog/${posts[0].slug}`))
+})
+
+test('sitemap comes from the live catalogue: new apps appear, hidden ones do not', () => {
+  const added = { ...app, id: 'app_new', slug: 'brand-new-app', updatedAt: '2026-11-27' }
+  const xml = sitemapXml([...apps, added, { ...app, id: 'app_off', slug: 'hidden-app', status: 'paused' }])
+  assert.match(xml, /\/app\/brand-new-app<\/loc><lastmod>2026-11-27</)
+  assert.ok(!xml.includes('hidden-app'))
+  assert.match(xml, /\/blog\//)
+})
+
+test('app pages use a hosted logo as the link-preview image, never an inline data URL', () => {
+  const hosted = renderPage(shell, pageFor(`/app/${app.slug}`, [{ ...app, iconImage: '/logos/x.png' }]))
+  assert.match(hosted, /og:image" content="https:\/\/[^"]+\/logos\/x\.png"/)
+  const inline = renderPage(shell, pageFor(`/app/${app.slug}`, [{ ...app, iconImage: 'data:image/png;base64,AAAA' }]))
+  assert.ok(!inline.includes('og:image'))
 })

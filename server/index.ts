@@ -34,7 +34,7 @@ import { bundle, campaignStats, liveVisitors } from './analytics'
 import { appTrends, blogTrending, cleanSource, recordEvent, stats, visitOf } from './events'
 import * as rewards from './rewards'
 import { limiter } from './limit'
-import { llmsTxt, pageFor, renderPage } from './seo'
+import { llmsTxt, pageFor, renderPage, sitemapXml } from './seo'
 
 const PORT = Number(process.env.PORT ?? 8788)
 const STATS_TOKEN = process.env.STATS_TOKEN ?? ''
@@ -315,6 +315,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
       const bad = URL_FIELDS.find((f) => doc[f] !== undefined && doc[f] !== '' && !isWebUrl(doc[f]))
       if (bad) throw new HttpError(400, `${bad} must be a web address starting with https://`)
       delete doc.promoted // computed from campaigns on every load; storing it would keep an ended campaign featured
+      doc.updatedAt = new Date().toISOString().slice(0, 10) // the sitemap's lastmod tells search engines which listings changed
     }
     if (kind === 'campaigns') {
       const link = (doc.tracking as { trackingUrl?: unknown } | undefined)?.trackingUrl
@@ -432,6 +433,10 @@ createServer(async (req, res) => {
     if (url.pathname === '/llms.txt') {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' })
       return res.end(llmsTxt(catalogue()))
+    }
+    if (url.pathname === '/sitemap.xml') {
+      res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-cache' })
+      return res.end(sitemapXml(catalogue()))
     }
     staticFile(res, url.pathname)
   } catch (e) {

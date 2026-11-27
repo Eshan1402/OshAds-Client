@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "PORT=8788 npm run server & vite",
-    "build": "tsc -b && npm run sitemap && vite build",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "audit": "node scripts/audit.mjs",
@@ -15,7 +15,6 @@
     "social:review": "tsx --tsconfig growth/tsconfig.json growth/agent/review.ts",
     "social:publish": "tsx --tsconfig growth/tsconfig.json growth/agent/review.ts publish",
     "typecheck:growth": "tsc -p growth/tsconfig.json --noEmit",
-    "sitemap": "tsx --tsconfig growth/tsconfig.json scripts/sitemap.ts",
     "campaigns:live": "tsx --tsconfig server/tsconfig.json scripts/live-campaigns.ts",
     "test": "tsx --tsconfig server/tsconfig.json --test src/lib/*.test.ts server/*.test.ts growth/core/*.test.ts",
     "server": "tsx --env-file-if-exists=.env.local --tsconfig server/tsconfig.json server/index.ts",

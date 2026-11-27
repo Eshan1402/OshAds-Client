@@ -11,7 +11,7 @@ const SITE = (process.env.SITE_URL ?? 'https://click.oshads.com').replace(/\/$/,
 const NAME = 'OshAds'
 const DEFAULT_DESC = 'OshAds is a free guide to mobile apps: plain-language listings, links to official stores only, and rewards for installing selected apps.'
 
-type Page = { status: number; title: string; description: string; path: string; h1: string; body: string; jsonLd: object[]; noindex?: boolean }
+type Page = { status: number; title: string; description: string; path: string; h1: string; body: string; jsonLd: object[]; noindex?: boolean; image?: string }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const clip = (s: string, n = 158) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
@@ -100,6 +100,7 @@ export function pageFor(rawPath: string, apps: MobileApp[]): Page {
       title: `${app.name} — ${cat?.name ?? 'App'} · ${NAME}`,
       h1: app.name,
       description: clip(`${app.name}: ${app.tagline}. ${app.description}`),
+      image: app.iconImage && !app.iconImage.startsWith('data:') ? new URL(app.iconImage, SITE).href : undefined,
       body: `<p>${esc(app.tagline)}</p><p>${esc(app.description)}</p>${extra}<p>${link(`/categories/${app.category}`, `More ${cat?.name ?? ''} apps`)}</p>${related.length ? `<h2>Similar apps</h2>${list(related.map(appItem))}` : ''}`,
       jsonLd: [crumbs([['Home', '/'], [cat?.name ?? 'Apps', `/categories/${app.category}`], [app.name, path]])],
     }
@@ -134,6 +135,7 @@ export function renderPage(indexHtml: string, page: Page) {
     `<meta property="og:description" content="${esc(page.description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
     `<meta name="twitter:card" content="summary" />`,
+    page.image ? `<meta property="og:image" content="${esc(page.image)}" />` : '',
     ...page.jsonLd.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`),
   ].filter(Boolean)
   return indexHtml
@@ -161,4 +163,15 @@ export function llmsTxt(apps: MobileApp[]) {
     ...live.map((a) => `- [${a.name}](${SITE}/app/${a.slug}): ${a.tagline}`),
     '',
   ].join('\n')
+}
+
+/** sitemap.xml from the live catalogue, so apps added in the dashboard reach search engines without a rebuild. */
+export function sitemapXml(apps: MobileApp[], today = new Date().toISOString().slice(0, 10)) {
+  const urls = [
+    ...['/', '/explore', '/trending', '/categories', '/blog', '/about', '/rewards'].map((p) => [p, today]),
+    ...categories.map((c) => [`/categories/${c.slug}`, today]),
+    ...posts.map((p) => [`/blog/${p.slug}`, p.date]),
+    ...apps.filter((a) => a.status === 'live').map((a) => [`/app/${a.slug}`, a.updatedAt.slice(0, 10)]),
+  ]
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(([loc, mod]) => `  <url><loc>${esc(SITE + loc)}</loc><lastmod>${mod}</lastmod></url>`).join('\n')}\n</urlset>\n`
 }
