@@ -50,12 +50,10 @@ export default function BlogPostPage() {
 
   const category = postCategories.find((c) => c.slug === post.category)!
   const related = posts.filter((p) => p.category === post.category && p.slug !== post.slug).slice(0, 2)
-  const jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: post.title, description: post.excerpt, datePublished: post.date, author: { '@type': 'Organization', name: 'OshAds' } }
 
   return (
     <PageTransition>
       <article className="container-page max-w-2xl py-10 sm:py-14">
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
         <Link to="/blog" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-muted hover:text-fg"><ArrowLeft className="size-4" aria-hidden /> All articles</Link>
         <p className="mt-6 text-sm font-medium text-accent-text"><Link to={`/blog?category=${category.slug}`} className="hover:underline">{category.name}</Link></p>
         <h1 className="mt-2 font-display text-3xl font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[42px]">{post.title}</h1>

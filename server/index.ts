@@ -34,6 +34,7 @@ import { bundle, campaignStats, liveVisitors } from './analytics'
 import { appTrends, blogTrending, cleanSource, recordEvent, stats, visitOf } from './events'
 import * as rewards from './rewards'
 import { limiter } from './limit'
+import { llmsTxt, pageFor, renderPage } from './seo'
 
 const PORT = Number(process.env.PORT ?? 8788)
 const STATS_TOKEN = process.env.STATS_TOKEN ?? ''
@@ -404,20 +405,20 @@ const TYPES: Record<string, string> = {
   '.xml': 'application/xml', '.txt': 'text/plain; charset=utf-8', '.woff2': 'font/woff2',
 }
 
-/** Serves the built site; unknown paths fall back to the pre-rendered page if one exists, else index.html. */
+/** Serves built files as they are; every page URL gets index.html filled in for that page (see server/seo.ts). */
 function staticFile(res: ServerResponse, pathname: string) {
   const safe = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, '')
-  const candidates = [join(DIST, safe), join(DIST, safe, 'index.html'), join(DIST, 'index.html')]
-  const file = candidates.find((f) => f.startsWith(DIST) && existsSync(f) && statSync(f).isFile())
-  if (!file) return send(res, 404, { error: 'Site not built. Run npm run build.' })
-  const immutable = safe.startsWith('/assets/')
-  res.writeHead(200, {
-    'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
-    'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-  })
-  res.end(readFileSync(file))
+  const file = join(DIST, safe)
+  const headers = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' }
+  if (file.startsWith(DIST) && !file.endsWith('index.html') && existsSync(file) && statSync(file).isFile()) {
+    res.writeHead(200, { ...headers, 'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream', 'Cache-Control': safe.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache' })
+    return res.end(readFileSync(file))
+  }
+  const index = join(DIST, 'index.html')
+  if (!existsSync(index)) return send(res, 404, { error: 'Site not built. Run npm run build.' })
+  const page = pageFor(safe, catalogue())
+  res.writeHead(page.status, { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' })
+  res.end(renderPage(readFileSync(index, 'utf8'), page))
 }
 
 seedDocs()
@@ -428,6 +429,10 @@ createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/')) return await api(req, res, url)
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' })
+    if (url.pathname === '/llms.txt') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' })
+      return res.end(llmsTxt(catalogue()))
+    }
     staticFile(res, url.pathname)
   } catch (e) {
     if (e instanceof HttpError) return send(res, e.status, { error: e.message })

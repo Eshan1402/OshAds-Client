@@ -127,6 +127,7 @@ export default function AppDetailPage() {
   if (AGE_GATED.includes(app.category) && !adult) {
     return (
       <div className="container-page py-20">
+        <h1 className="text-center font-display text-3xl font-bold tracking-tight text-fg">{app.name}</h1>
         <EmptyState
           icon={<ShieldCheck />}
           title="Are you 18 or older?"
@@ -163,7 +164,6 @@ export default function AppDetailPage() {
     <PageTransition>
       {/* Escape "<" so app text can never close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
-      <link rel="canonical" href={`${location.origin}/app/${app.slug}`} />
       {/* Header */}
       <section className="relative overflow-hidden border-b border-line">
         <div className="container-page relative py-8 sm:py-12">
